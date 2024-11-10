@@ -6,7 +6,10 @@ export default function Home() {
   return (
     <main className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8 text-gray-900">Brain Dump App</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900">Brain Dump App</h1>
+          <span className="text-sm text-gray-500">v0.1.1</span>
+        </div>
         
         {/* Thought Input Section */}
         <section className="mb-12">

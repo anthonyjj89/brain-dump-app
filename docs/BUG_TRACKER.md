@@ -1,8 +1,26 @@
 # Bug Tracker
 
-> Last Updated: 2024-11-10T21:34:34.378Z
+> Last Updated: 2024-11-10T21:45:31.177Z
 
 ## Open Bugs
+
+### [BUG-1731275108698] Admin panel is in the way when scren shoting, also it opens up a share thing like youre in a zoom call. lets just make it screen shot the current tab yo
+- **Status**: Open
+- **Priority**: Medium
+- **Reported By**: User
+- **Created**: Mon Nov 11 2024 01:45:08 GMT+0400 (Gulf Standard Time)
+- **Updated**: Mon Nov 11 2024 01:45:08 GMT+0400 (Gulf Standard Time)
+- **Steps to Reproduce**:
+  1. screen shot you can see admin panel is in teh way 
+
+### [BUG-1731275058249] admin panel also has grey text on input boxes and a few other areas.
+- **Status**: Open
+- **Priority**: High
+- **Reported By**: User
+- **Created**: Mon Nov 11 2024 01:44:18 GMT+0400 (Gulf Standard Time)
+- **Updated**: Mon Nov 11 2024 01:44:18 GMT+0400 (Gulf Standard Time)
+- **Steps to Reproduce**:
+  1. Look at it
 
 ### [BUG-1731273892698] Input Text Color Too Light
 - **Status**: Open
