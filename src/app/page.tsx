@@ -1,5 +1,6 @@
 import ThoughtForm from '@/components/ThoughtForm';
 import ReviewCards from '@/components/ReviewCards';
+import AdminPanel from '@/components/AdminPanel';
 
 export default function Home() {
   return (
@@ -37,6 +38,9 @@ export default function Home() {
             </li>
           </ul>
         </section>
+
+        {/* Admin Panel */}
+        <AdminPanel />
       </div>
     </main>
   );
