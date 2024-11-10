@@ -12,6 +12,10 @@ export interface Bug {
   updatedAt: Date;
   resolvedBy?: string;
   notes?: string;
+  screenshot?: {
+    path: string;  // Path to screenshot in public/screenshots
+    timestamp: Date;
+  };
 }
 
 export const BUG_STATUSES = ['Open', 'Closed'] as const;
@@ -33,6 +37,10 @@ export function validateBug(bug: Partial<Bug>): bug is Bug {
     Array.isArray(bug.steps) &&
     bug.steps.every(step => typeof step === 'string') &&
     bug.createdAt instanceof Date &&
-    bug.updatedAt instanceof Date
+    bug.updatedAt instanceof Date &&
+    (!bug.screenshot || (
+      typeof bug.screenshot.path === 'string' &&
+      bug.screenshot.timestamp instanceof Date
+    ))
   );
 }

@@ -6,8 +6,16 @@ import { join } from 'path';
 import type { Bug } from '@/lib/schemas/bug';
 
 function formatBugsToMarkdown(bugs: Bug[]): string {
-  const openBugs = bugs.filter(bug => bug.status === 'Open');
-  const closedBugs = bugs.filter(bug => bug.status === 'Closed');
+  // Sort bugs by status and then by creation date (newest first)
+  const sortedBugs = [...bugs].sort((a, b) => {
+    if (a.status !== b.status) {
+      return a.status === 'Open' ? -1 : 1;
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  const openBugs = sortedBugs.filter(bug => bug.status === 'Open');
+  const closedBugs = sortedBugs.filter(bug => bug.status === 'Closed');
 
   let content = '# Bug Tracker\n\n';
 
@@ -39,8 +47,8 @@ function formatBugToMarkdown(bug: Bug): string {
   content += `- **Status**: ${bug.status}\n`;
   content += `- **Priority**: ${bug.priority}\n`;
   content += `- **Reported By**: ${bug.reportedBy}\n`;
-  content += `- **Created**: ${bug.createdAt.toISOString()}\n`;
-  content += `- **Updated**: ${bug.updatedAt.toISOString()}\n`;
+  content += `- **Created**: ${bug.createdAt}\n`;
+  content += `- **Updated**: ${bug.updatedAt}\n`;
   
   if (bug.steps.length > 0) {
     content += '- **Steps to Reproduce**:\n';
@@ -84,12 +92,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       status: 'success',
       message: 'Bug Tracker synced successfully',
-      data: {
-        totalBugs: bugs.length,
-        openBugs: bugs.filter(b => b.status === 'Open').length,
-        closedBugs: bugs.filter(b => b.status === 'Closed').length,
-        lastUpdated: new Date().toISOString()
-      }
+      data: bugs
     });
   } catch (error) {
     console.error('Error syncing bug tracker:', error);
@@ -114,8 +117,22 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Check for duplicate bug by title and open status
+    const existingBug = await collection.findOne({
+      title: body.title,
+      status: 'Open'
+    });
+
+    if (existingBug) {
+      return NextResponse.json({
+        status: 'error',
+        message: 'A similar open bug already exists',
+        data: existingBug
+      }, { status: 409 });
+    }
+
     const bug: Bug = {
-      id: body.id || `BUG-${Date.now()}`,
+      id: `BUG-${Date.now()}`,
       title: body.title,
       status: 'Open',
       priority: body.priority,
@@ -144,6 +161,59 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       status: 'error',
       message: error instanceof Error ? error.message : 'Failed to add bug',
+    }, { status: 500 });
+  }
+}
+
+// Endpoint to update a bug
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const collection = await getCollection('bugs');
+
+    if (!body.id) {
+      return NextResponse.json({
+        status: 'error',
+        message: 'Bug ID is required'
+      }, { status: 400 });
+    }
+
+    const updateData: Partial<Bug> = {
+      updatedAt: new Date()
+    };
+
+    if (body.status) updateData.status = body.status;
+    if (body.priority) updateData.priority = body.priority;
+    if (body.resolvedBy) updateData.resolvedBy = body.resolvedBy;
+    if (body.notes) updateData.notes = body.notes;
+
+    const result = await collection.updateOne(
+      { id: body.id },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json({
+        status: 'error',
+        message: 'Bug not found'
+      }, { status: 404 });
+    }
+
+    // Trigger markdown sync
+    const bugs = await collection.find<Bug>({}).toArray();
+    const markdownContent = formatBugsToMarkdown(bugs);
+    const filePath = join(process.cwd(), 'docs', 'BUG_TRACKER.md');
+    await writeFile(filePath, markdownContent, 'utf8');
+
+    return NextResponse.json({
+      status: 'success',
+      message: 'Bug updated and tracker synced'
+    });
+  } catch (error) {
+    console.error('Error updating bug:', error);
+    return NextResponse.json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Failed to update bug',
     }, { status: 500 });
   }
 }
