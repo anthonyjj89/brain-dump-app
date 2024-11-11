@@ -1,64 +1,57 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
+import path from 'path';
 
 export async function POST(request: NextRequest) {
   try {
-    // Check content type to determine request type
+    // Check if the request is JSON (from screen capture) or FormData (from file upload)
     const contentType = request.headers.get('content-type');
     let buffer: Buffer;
-    let filename: string;
+    const timestamp = Date.now();
+    const filename = `screenshot-${timestamp}.png`;
+    const filepath = join(process.cwd(), 'public', 'screenshots', filename);
 
-    if (contentType?.includes('multipart/form-data')) {
-      // Handle file upload
+    if (contentType?.includes('application/json')) {
+      // Handle base64 image data from screen capture
+      const data = await request.json();
+      const base64Data = data.imageData.replace(/^data:image\/\w+;base64,/, '');
+      buffer = Buffer.from(base64Data, 'base64');
+    } else {
+      // Handle form data from file upload
       const formData = await request.formData();
-      const file = formData.get('file') as File | null;
-
+      const file = formData.get('screenshot') as File;
+      
       if (!file) {
-        return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+        return NextResponse.json({ 
+          status: 'error', 
+          message: 'No screenshot provided' 
+        }, { status: 400 });
       }
 
       const bytes = await file.arrayBuffer();
       buffer = Buffer.from(bytes);
-      filename = `screenshot-${Date.now()}.png`;
-    } else {
-      // Handle automatic screen capture
-      const data = await request.json();
-      
-      if (!data.type || data.type !== 'auto-capture') {
-        return NextResponse.json({ error: 'Invalid request type' }, { status: 400 });
-      }
-
-      // For auto-capture, we'll receive the base64 image data from html2canvas
-      // in the frontend after the AdminPanel is hidden
-      const imageData = data.imageData;
-      if (!imageData) {
-        return NextResponse.json({ error: 'No image data provided' }, { status: 400 });
-      }
-
-      // Remove the data URL prefix and convert to buffer
-      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
-      buffer = Buffer.from(base64Data, 'base64');
-      filename = `screenshot-${data.timestamp || Date.now()}.png`;
     }
 
-    // Ensure screenshots directory exists
-    const screenshotsDir = join(process.cwd(), 'public', 'screenshots');
-    const path = join(screenshotsDir, filename);
+    // Save file
+    await writeFile(filepath, buffer);
 
-    // Write the file
-    await writeFile(path, buffer);
+    // Return the public URL path
+    const publicPath = `/screenshots/${filename}`;
 
-    // Return the path to the saved screenshot
-    return NextResponse.json({ 
-      success: true, 
-      path: `/screenshots/${filename}` 
+    return NextResponse.json({
+      status: 'success',
+      data: {
+        path: publicPath,
+        timestamp: new Date(timestamp)
+      }
     });
   } catch (error) {
-    console.error('Error handling screenshot:', error);
-    return NextResponse.json({ 
-      error: 'Failed to process screenshot',
-      details: error instanceof Error ? error.message : 'Unknown error'
+    console.error('Error saving screenshot:', error);
+    return NextResponse.json({
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Failed to save screenshot'
     }, { status: 500 });
   }
 }

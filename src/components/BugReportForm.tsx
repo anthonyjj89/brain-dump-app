@@ -1,3 +1,4 @@
+/** @jsxImportSource react */
 'use client';
 
 import React, { useState } from 'react';
@@ -48,18 +49,19 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
       // Stop screen capture
       stream.getTracks().forEach(track => track.stop());
 
-      // Convert canvas to blob
-      const blob = await new Promise<Blob>((resolve) => {
-        canvas.toBlob((blob) => resolve(blob!), 'image/png');
-      });
+      // Get base64 image data
+      const imageData = canvas.toDataURL('image/png');
 
-      // Create form data and send to API
-      const formData = new FormData();
-      formData.append('screenshot', blob, 'screenshot.png');
-
+      // Send to API
       const response = await fetch('/api/screenshots', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageData,
+          timestamp: Date.now()
+        }),
       });
 
       if (!response.ok) {
@@ -67,7 +69,11 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
       }
 
       const data = await response.json();
-      setScreenshotPath(data.data.path);
+      if (data.status === 'success' && data.data.path) {
+        setScreenshotPath(data.data.path);
+      } else {
+        throw new Error(data.message || 'Failed to process screenshot');
+      }
     } catch (err) {
       console.error('Error capturing screenshot:', err);
       setErrorMessage('Failed to capture screenshot. Please try again.');
@@ -88,6 +94,7 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
         steps: steps.filter(step => step.trim() !== ''),
         priority,
         type: reportType,
+        reportedBy: 'User', // Default reporter
         screenshot: screenshotPath ? {
           path: screenshotPath,
           timestamp: new Date()
@@ -151,6 +158,7 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           required
+          rows={4}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
         />
       </div>
@@ -169,13 +177,28 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
                 }}
                 className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
               />
-              <button
-                type="button"
-                onClick={() => setSteps([...steps, ''])}
-                className="ml-2 px-2 py-1 bg-blue-500 text-white rounded"
-              >
-                +
-              </button>
+              {index === steps.length - 1 && (
+                <button
+                  type="button"
+                  onClick={() => setSteps([...steps, ''])}
+                  className="ml-2 px-2 py-1 bg-blue-500 text-white rounded"
+                >
+                  +
+                </button>
+              )}
+              {index < steps.length - 1 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newSteps = [...steps];
+                    newSteps.splice(index, 1);
+                    setSteps(newSteps);
+                  }}
+                  className="ml-2 px-2 py-1 bg-red-500 text-white rounded"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           ))}
         </div>
