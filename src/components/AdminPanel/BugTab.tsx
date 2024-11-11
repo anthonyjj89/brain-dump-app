@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import BugReportForm from '../BugReportForm';
 import { Bug, BUG_PRIORITIES } from '@/lib/schemas/bug';
-import { captureScreenshot } from '@/utils/screenshot';
 
 interface BugTabProps {
   initialReports?: Bug[];
@@ -24,7 +23,6 @@ export default function BugTab({
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'createdAt' | 'priority'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
 
   async function fetchReports() {
     try {
@@ -42,26 +40,6 @@ export default function BugTab({
   useEffect(() => {
     fetchReports();
   }, []);
-
-  const handleScreenshotRequest = async (): Promise<string> => {
-    try {
-      setIsCapturingScreenshot(true);
-      onHidePanel();
-
-      // Wait for panel to hide
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Capture screenshot
-      const screenshotPath = await captureScreenshot();
-      setSelectedScreenshot(screenshotPath);
-      return screenshotPath;
-    } catch (error) {
-      console.error('Error capturing screenshot:', error);
-      throw error;
-    } finally {
-      setIsCapturingScreenshot(false);
-    }
-  };
 
   const sortedReports = [...reports].sort((a, b) => {
     if (sortBy === 'createdAt') {
@@ -125,7 +103,7 @@ export default function BugTab({
             onReportSubmit();
           }} 
           reportType={reportType}
-          onScreenshotRequest={handleScreenshotRequest}
+          onScreenshotRequest={onHidePanel}
         />
       </div>
 

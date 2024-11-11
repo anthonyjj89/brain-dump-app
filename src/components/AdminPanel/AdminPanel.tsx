@@ -47,7 +47,7 @@ const AdminPanel: React.FC = () => {
     // Re-open panel after screenshot is taken
     setTimeout(() => {
       setIsOpen(true);
-    }, 2000);
+    }, 2000); // Wait for screenshot to be taken
   };
 
   if (!isOpen) {

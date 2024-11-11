@@ -6,7 +6,7 @@ import { BUG_PRIORITIES } from '@/lib/schemas/bug';
 interface BugReportFormProps {
   onSubmitSuccess: () => void;
   reportType: 'bug' | 'feature';
-  onScreenshotRequest: () => Promise<string>;
+  onScreenshotRequest: () => void;
 }
 
 export default function BugReportForm({ onSubmitSuccess, reportType, onScreenshotRequest }: BugReportFormProps) {
@@ -16,7 +16,65 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
   const [priority, setPriority] = useState<'Low' | 'Medium' | 'High'>('Medium');
   const [screenshotPath, setScreenshotPath] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleScreenshot = async () => {
+    try {
+      setIsCapturingScreenshot(true);
+      setErrorMessage(null);
+
+      // Request screen capture
+      const stream = await navigator.mediaDevices.getDisplayMedia({ 
+        video: { 
+          displaySurface: 'browser',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      });
+
+      // Create video element to capture frame
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      await video.play();
+
+      // Create canvas to draw the frame
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx?.drawImage(video, 0, 0);
+
+      // Stop screen capture
+      stream.getTracks().forEach(track => track.stop());
+
+      // Convert canvas to blob
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => resolve(blob!), 'image/png');
+      });
+
+      // Create form data and send to API
+      const formData = new FormData();
+      formData.append('screenshot', blob, 'screenshot.png');
+
+      const response = await fetch('/api/screenshots', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload screenshot');
+      }
+
+      const data = await response.json();
+      setScreenshotPath(data.data.path);
+    } catch (err) {
+      console.error('Error capturing screenshot:', err);
+      setErrorMessage('Failed to capture screenshot. Please try again.');
+    } finally {
+      setIsCapturingScreenshot(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +88,10 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
         steps: steps.filter(step => step.trim() !== ''),
         priority,
         type: reportType,
-        screenshot: screenshotPath,
+        screenshot: screenshotPath ? {
+          path: screenshotPath,
+          timestamp: new Date()
+        } : undefined
       };
 
       const response = await fetch('/api/sync/bugs', {
@@ -57,17 +118,6 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
       setErrorMessage(error instanceof Error ? error.message : 'An unknown error occurred');
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleCaptureScreenshot = async () => {
-    try {
-      // Request screenshot capture and get the path
-      const path = await onScreenshotRequest();
-      setScreenshotPath(path);
-    } catch (error) {
-      console.error('Error capturing screenshot:', error);
-      setErrorMessage('Failed to capture screenshot');
     }
   };
 
@@ -146,20 +196,37 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
         </select>
       </div>
       <div>
-        <button
-          type="button"
-          onClick={handleCaptureScreenshot}
-          className="w-full px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50"
-        >
-          Capture Screenshot
-        </button>
+        <div className="flex justify-between items-center mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Screenshot
+          </label>
+          <button
+            type="button"
+            onClick={handleScreenshot}
+            disabled={isCapturingScreenshot}
+            className={`px-3 py-1 text-sm rounded-md ${
+              isCapturingScreenshot
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
+          >
+            {isCapturingScreenshot ? 'Capturing...' : 'Capture Screenshot'}
+          </button>
+        </div>
         {screenshotPath && (
-          <div className="mt-2">
-            <img 
-              src={screenshotPath} 
-              alt="Screenshot" 
+          <div className="mt-2 relative">
+            <img
+              src={screenshotPath}
+              alt="Screenshot"
               className="max-w-full h-auto rounded border border-gray-300"
             />
+            <button
+              type="button"
+              onClick={() => setScreenshotPath('')}
+              className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 hover:bg-red-700"
+            >
+              ✕
+            </button>
           </div>
         )}
       </div>
