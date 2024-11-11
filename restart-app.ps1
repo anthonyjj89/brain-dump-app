@@ -11,9 +11,14 @@ if (Test-Path ".next") {
     Remove-Item -Recurse -Force .next
 }
 
-# Start the Next.js development server
-Write-Host "Starting Next.js development server..."
-Start-Process powershell -ArgumentList "npm run dev"
+# Install dependencies if needed
+Write-Host "Checking dependencies..."
+if (!(Test-Path "node_modules")) {
+    Write-Host "Installing dependencies..."
+    npm install
+}
 
-Write-Host "App restarted successfully!"
-Write-Host "App running at: http://localhost:3000"
+# Start the Next.js development server in the current window
+Write-Host "Starting Next.js development server..."
+Write-Host "App will be running at: http://localhost:3000"
+npm run dev
