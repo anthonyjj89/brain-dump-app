@@ -9,9 +9,10 @@ import { Bug, generateBugId, validateBug, BUG_STATUSES, BUG_PRIORITIES } from '@
 function isAuthorizedSync(request: NextRequest): boolean {
   const authHeader = request.headers.get('authorization');
   const syncToken = process.env.SYNC_TOKEN;
+  const hostname = request.headers.get('host') || '';
   
-  // Skip auth check in development
-  if (process.env.NODE_ENV === 'development') {
+  // Skip auth check for localhost
+  if (hostname.includes('localhost')) {
     return true;
   }
 

@@ -42,9 +42,10 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
 
   const triggerSync = async () => {
     try {
-      // Skip auth in development
+      // Skip auth if URL is localhost
+      const isLocalhost = window.location.hostname === 'localhost';
       const headers: HeadersInit = {};
-      if (process.env.NODE_ENV !== 'development') {
+      if (!isLocalhost) {
         headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_SYNC_TOKEN}`;
       }
 
