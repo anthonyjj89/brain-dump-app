@@ -1,4 +1,4 @@
-# Development Handover - v0.1.2
+# Development Handover - v0.1.3
 
 ## Current State
 
@@ -45,6 +45,7 @@ brain-dump-app/
 - Connection pooling configured
 - Health monitoring active
 - Test endpoints functional
+- Bug tracking system operational
 
 ### Features Implemented
 1. Database Integration
@@ -58,12 +59,15 @@ brain-dump-app/
    - Database connection status
    - Service configuration status
    - Real-time metrics with React Query
+   - Bug tracking interface
 
 3. Core Features
    - Thought submission form
    - Review card system
    - External service sync preparation
    - AI integration ready
+   - Bug reporting with screenshots
+   - Manual database sync tool
 
 ### Known Issues
 - None critical at the moment
@@ -120,6 +124,7 @@ brain-dump-app/
 - Monitor `/api/status` for system health
 - Use Admin Panel for quick status overview
 - Check Heroku logs for deployment issues
+- Use `sync-local.js` for manual database sync
 
 ## Resources
 - MongoDB Atlas Dashboard
@@ -129,6 +134,7 @@ brain-dump-app/
 - Heroku deployment logs
 
 ## Version History
+- v0.1.3: Manual database sync and bug management improvements
 - v0.1.2: Bug reporting and screenshot functionality
 - v0.1.1: MongoDB Integration
 - v0.1.0: Initial Setup

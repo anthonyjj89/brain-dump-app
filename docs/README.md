@@ -2,7 +2,7 @@
 
 A productivity tool that uses AI to capture, categorize, and sync your thoughts across various platforms.
 
-## Version: 0.1.2
+## Version: 0.1.3
 
 ## Overview
 

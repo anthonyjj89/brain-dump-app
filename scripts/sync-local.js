@@ -10,6 +10,9 @@ if (!uri) {
   process.exit(1);
 }
 
+// Add debug logging
+console.log('Using MongoDB URI:', uri.replace(/\/\/[^@]+@/, '//<credentials>@'));
+
 function getStatusEmoji(status) {
   switch (status) {
     case 'Open': return '🔴';
@@ -208,9 +211,20 @@ async function syncFromDB() {
     await client.connect();
     console.log('Connected to MongoDB');
 
-    const db = client.db();
+    // Use Brain-Dump-Database
+    const db = client.db('Brain-Dump-Database');
+    console.log('Using database:', db.databaseName);
+
     const bugsCollection = db.collection('bugs');
     const featuresCollection = db.collection('features');
+
+    // List all collections and their document counts
+    const collections = await db.listCollections().toArray();
+    console.log('\nCollections:');
+    for (const collection of collections) {
+      const count = await db.collection(collection.name).countDocuments();
+      console.log(`- ${collection.name}: ${count} documents`);
+    }
 
     // Fetch all reports
     const [bugs, features] = await Promise.all([
@@ -218,7 +232,8 @@ async function syncFromDB() {
       featuresCollection.find({}).toArray()
     ]);
 
-    console.log(`Found ${bugs.length} bugs and ${features.length} features`);
+    console.log('\nBugs found:', bugs.map(b => ({ id: b.id, title: b.title })));
+    console.log('Features found:', features.map(f => ({ id: f.id, title: f.title })));
 
     // Transform and combine reports
     const reports = [
@@ -233,7 +248,7 @@ async function syncFromDB() {
     const filePath = path.join(process.cwd(), 'docs', 'FEEDBACK_TRACKER.md');
     await fs.writeFile(filePath, markdownContent, 'utf8');
 
-    console.log('Successfully synced feedback tracker');
+    console.log('\nSuccessfully synced feedback tracker');
 
     // Optional: Commit changes
     const { execSync } = require('child_process');
@@ -260,7 +275,10 @@ async function updateBugStatus(bugId, newStatus, resolvedBy) {
     await client.connect();
     console.log('Connected to MongoDB');
 
-    const db = client.db();
+    // Use Brain-Dump-Database
+    const db = client.db('Brain-Dump-Database');
+    console.log('Using database:', db.databaseName);
+
     const bugsCollection = db.collection('bugs');
     const featuresCollection = db.collection('features');
 
