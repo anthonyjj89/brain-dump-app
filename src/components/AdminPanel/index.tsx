@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import StatusTab from './AdminPanel/StatusTab';
-import BugTab from './AdminPanel/BugTab';
+import StatusTab from './StatusTab';
+import BugTab from './BugTab';
 
-const AdminPanel: React.FC = () => {
+export default function AdminPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'status' | 'bugs'>('status');
-  const [reportType, setReportType] = useState<'bug' | 'feature'>('bug');
   const panelRef = useRef<HTMLDivElement>(null);
 
   // Close panel when clicking outside
@@ -41,11 +40,6 @@ const AdminPanel: React.FC = () => {
       };
     }
   }, [isOpen]);
-
-  const handleReportSubmit = () => {
-    // Handle report submission logic here
-    console.log('Report submitted');
-  };
 
   if (!isOpen) {
     return (
@@ -102,13 +96,9 @@ const AdminPanel: React.FC = () => {
         <StatusTab onRefresh={() => {}} />
       ) : (
         <BugTab 
-          onReportSubmit={handleReportSubmit}
-          reportType={reportType}
-          setReportType={setReportType}
+          onBugSubmit={() => {}} 
         />
       )}
     </div>
   );
-};
-
-export default AdminPanel;
+}

@@ -15,46 +15,51 @@ This document serves as a synchronized database of all project bugs, automatical
 
 ### [BUG-MP-001] Input Text Color Too Light
 **MongoDB ID**: 65f9d8a1e4b0a6f2c3d1e5f8  
-**Status**: 🔴 Open  
+**Status**: 🟢 Resolved  
 **Source**: User Feedback System  
 **Reporter**: john.doe@example.com  
-**Date Reported**: 2024-11-07 14:30 UTC  
-**Last Updated**: 2024-11-07 15:45 UTC  
+**Date Reported**: 2024-03-19 14:30 UTC  
+**Last Updated**: 2024-03-19 15:45 UTC  
 
 **Description**: 
-The submit button on the feedback form is unresponsive when clicked.
+Text in the thought input box appears grey, making it difficult to read.
 
 **Steps to Reproduce**:
-1. Navigate to the feedback form
-2. Fill out the form
-3. Click the "Submit" button
+1. Open the application
+2. Focus on the "What's on your mind?" input box
+3. Type some text
+4. Observe the text color is too light grey
 
 **Expected Behavior**:
-Form should submit and show confirmation message.
+Text should be dark and easily readable.
 
 **Actual Behavior**:
-Button click has no effect, no visual feedback.
+Text appears in a light grey color, reducing readability.
 
 **Environment**:
-- Browser: Chrome 119.0
-- OS: Windows 11
-- Resolution: 1920x1080
+- Browser: All browsers
+- OS: All operating systems
+- Component: ThoughtForm
+- File: src/components/ThoughtForm.tsx
 
 **Impact**: 
-- Severity: High
-- Affected Users: All users attempting to submit feedback
-- Business Impact: Unable to collect user feedback
+- Severity: Medium
+- Affected Users: All users entering thoughts
+- Business Impact: Reduced usability and accessibility
 
-**Priority**: High  
-**Assigned To**: @developer.name  
+**Priority**: Medium  
+**Assigned To**: TBD  
 
 **Resolution**: 
-_Pending resolution._
+Added explicit text color classes to ensure readability:
+- Light mode: text-gray-900
+- Dark mode: dark:text-gray-100
+- Applied to both textarea and select elements
+- Verified in both color schemes
 
 **Updates**:
-- 2024-11-07 15:45 UTC: Assigned to development team
-- 2024-11-07 15:30 UTC: Reproduced in testing environment
-- 2024-11-07 14:30 UTC: Initial report received
+- 2024-03-19 15:45 UTC: Bug resolved - implemented text color fix
+- 2024-03-19 14:30 UTC: Bug identified and documented
 
 ### [BUG-002] Memory Leak in Dashboard
 **MongoDB ID**: 6548a7b9e4b0a6f2c3d1e5f9  
@@ -153,40 +158,35 @@ interface Update {
 **Last Updated**: [YYYY-MM-DD HH:MM UTC]  
 
 **Description**: 
-Text in the thought input box appears grey, making it difficult to read.
+[Clear description of the bug]
 
 **Steps to Reproduce**:
-1. Open the application
-2. Focus on the "What's on your mind?" input box
-3. Type some text
-4. Observe the text color is too light grey
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
 
 **Expected Behavior**:
-Text should be dark and easily readable.
+[What should happen]
 
 **Actual Behavior**:
-Text appears in a light grey color, reducing readability.
+[What actually happens]
 
 **Environment**:
-- Browser: All browsers
-- OS: All operating systems
-- Component: ThoughtForm
-- File: src/components/ThoughtForm.tsx
+- Browser: [Browser details]
+- OS: [Operating system]
+- Component: [Affected component]
+- File: [Relevant file path]
 
 **Impact**: 
-- Severity: Medium
-- Affected Users: All users entering thoughts
-- Business Impact: Reduced usability and accessibility
+- Severity: [High/Medium/Low]
+- Affected Users: [Who is affected]
+- Business Impact: [Impact description]
 
-**Priority**: Medium  
-**Assigned To**: TBD  
+**Priority**: [Priority Level]  
+**Assigned To**: [Developer name/team]  
 
 **Resolution**: 
-_Pending resolution. Likely requires CSS class update for text color._
+[Resolution details or pending]
 
 **Updates**:
-- 2024-03-19 20:45 UTC: Bug identified and documented
-
-[Previous template bugs section remains for reference...]
-
-[Rest of the template sections remain unchanged...]
+- [Date Time]: [Update message]

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import StatusTab from './AdminPanel/StatusTab';
-import BugTab from './AdminPanel/BugTab';
+import StatusTab from './StatusTab';
+import BugTab from './BugTab';
 
 const AdminPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -42,16 +42,19 @@ const AdminPanel: React.FC = () => {
     }
   }, [isOpen]);
 
-  const handleReportSubmit = () => {
-    // Handle report submission logic here
-    console.log('Report submitted');
+  const handleHidePanel = () => {
+    setIsOpen(false);
+    // Re-open panel after screenshot is taken
+    setTimeout(() => {
+      setIsOpen(true);
+    }, 2000);
   };
 
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-700 transition-colors"
+        className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-700 transition-colors admin-panel"
       >
         Show Admin Panel
       </button>
@@ -61,7 +64,7 @@ const AdminPanel: React.FC = () => {
   return (
     <div 
       ref={panelRef}
-      className="fixed bottom-4 right-4 bg-white p-6 rounded-lg shadow-xl border border-gray-200 w-[600px] max-h-[80vh] overflow-y-auto z-50"
+      className="fixed bottom-4 right-4 bg-white p-6 rounded-lg shadow-xl border border-gray-200 w-[600px] max-h-[80vh] overflow-y-auto z-50 admin-panel"
     >
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Admin Panel</h2>
@@ -102,9 +105,10 @@ const AdminPanel: React.FC = () => {
         <StatusTab onRefresh={() => {}} />
       ) : (
         <BugTab 
-          onReportSubmit={handleReportSubmit}
+          onReportSubmit={() => {}} 
           reportType={reportType}
           setReportType={setReportType}
+          onHidePanel={handleHidePanel}
         />
       )}
     </div>

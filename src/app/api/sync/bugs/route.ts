@@ -3,21 +3,25 @@ import type { NextRequest } from 'next/server';
 import { getCollection } from '@/lib/mongodb';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
-import type { Bug } from '@/lib/schemas/bug';
+import { Bug, generateBugId, validateBug, BUG_STATUSES, BUG_PRIORITIES } from '@/lib/schemas/bug';
 
-function formatBugsToMarkdown(bugs: Bug[]): string {
-  // Sort bugs by status and then by creation date (newest first)
-  const sortedBugs = [...bugs].sort((a, b) => {
+function formatReportsToMarkdown(reports: Bug[]): string {
+  // Sort reports by status, type, and then by creation date (newest first)
+  const sortedReports = [...reports].sort((a, b) => {
     if (a.status !== b.status) {
       return a.status === 'Open' ? -1 : 1;
+    }
+    if (a.type !== b.type) {
+      return a.type === 'bug' ? -1 : 1;
     }
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const openBugs = sortedBugs.filter(bug => bug.status === 'Open');
-  const closedBugs = sortedBugs.filter(bug => bug.status === 'Closed');
+  const openBugs = sortedReports.filter(report => report.status === 'Open' && report.type === 'bug');
+  const openFeatures = sortedReports.filter(report => report.status === 'Open' && report.type === 'feature');
+  const closedReports = sortedReports.filter(report => report.status === 'Closed');
 
-  let content = '# Bug Tracker\n\n';
+  let content = '# Bug and Feature Tracker\n\n';
 
   // Add timestamp
   content += `> Last Updated: ${new Date().toISOString()}\n\n`;
@@ -25,13 +29,19 @@ function formatBugsToMarkdown(bugs: Bug[]): string {
   // Open Bugs Section
   content += '## Open Bugs\n\n';
   openBugs.forEach(bug => {
-    content += formatBugToMarkdown(bug);
+    content += formatReportToMarkdown(bug);
   });
 
-  // Closed Bugs Section
-  content += '\n## Closed Bugs\n\n';
-  closedBugs.forEach(bug => {
-    content += formatBugToMarkdown(bug);
+  // Open Features Section
+  content += '\n## Open Feature Requests\n\n';
+  openFeatures.forEach(feature => {
+    content += formatReportToMarkdown(feature);
+  });
+
+  // Closed Reports Section
+  content += '\n## Closed Reports\n\n';
+  closedReports.forEach(report => {
+    content += formatReportToMarkdown(report);
   });
 
   // Add footer
@@ -42,27 +52,32 @@ function formatBugsToMarkdown(bugs: Bug[]): string {
   return content;
 }
 
-function formatBugToMarkdown(bug: Bug): string {
-  let content = `### [${bug.id}] ${bug.title}\n`;
-  content += `- **Status**: ${bug.status}\n`;
-  content += `- **Priority**: ${bug.priority}\n`;
-  content += `- **Reported By**: ${bug.reportedBy}\n`;
-  content += `- **Created**: ${bug.createdAt}\n`;
-  content += `- **Updated**: ${bug.updatedAt}\n`;
+function formatReportToMarkdown(report: Bug): string {
+  let content = `### [${report.id}] ${report.title}\n`;
+  content += `- **Type**: ${report.type}\n`;
+  content += `- **Status**: ${report.status}\n`;
+  content += `- **Priority**: ${report.priority}\n`;
+  content += `- **Reported By**: ${report.reportedBy}\n`;
+  content += `- **Created**: ${report.createdAt.toISOString()}\n`;
+  content += `- **Updated**: ${report.updatedAt.toISOString()}\n`;
   
-  if (bug.steps.length > 0) {
+  if (report.steps && report.steps.length > 0) {
     content += '- **Steps to Reproduce**:\n';
-    bug.steps.forEach((step, index) => {
+    report.steps.forEach((step, index) => {
       content += `  ${index + 1}. ${step}\n`;
     });
   }
 
-  if (bug.status === 'Closed' && bug.resolvedBy) {
-    content += `- **Resolved By**: ${bug.resolvedBy}\n`;
+  if (report.status === 'Closed' && report.resolvedBy) {
+    content += `- **Resolved By**: ${report.resolvedBy}\n`;
   }
 
-  if (bug.notes) {
-    content += `- **Notes**: ${bug.notes}\n`;
+  if (report.notes) {
+    content += `- **Notes**: ${report.notes}\n`;
+  }
+
+  if (report.screenshot) {
+    content += `- **Screenshot**: [View](${report.screenshot})\n`;
   }
 
   content += '\n';
@@ -71,28 +86,22 @@ function formatBugToMarkdown(bug: Bug): string {
 
 export async function GET(request: NextRequest) {
   try {
-    // Get bugs collection
     const collection = await getCollection('bugs');
-    
-    // Fetch all bugs
-    const bugs = await collection.find<Bug>({}).sort({ 
-      status: 1,  // Open bugs first
-      priority: -1,  // High priority first
-      createdAt: -1  // Newest first
+    const reports = await collection.find<Bug>({}).sort({ 
+      status: 1,
+      type: 1,
+      priority: -1,
+      createdAt: -1
     }).toArray();
 
-    // Format bugs to markdown
-    const markdownContent = formatBugsToMarkdown(bugs);
-
-    // Write to BUG_TRACKER.md
+    const markdownContent = formatReportsToMarkdown(reports);
     const filePath = join(process.cwd(), 'docs', 'BUG_TRACKER.md');
     await writeFile(filePath, markdownContent, 'utf8');
 
-    // Return success response
     return NextResponse.json({
       status: 'success',
       message: 'Bug Tracker synced successfully',
-      data: bugs
+      data: reports
     });
   } catch (error) {
     console.error('Error syncing bug tracker:', error);
@@ -103,69 +112,74 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Endpoint to manually add a bug
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const collection = await getCollection('bugs');
 
-    // Validate bug data
-    if (!body.title || !body.priority || !body.steps || !body.reportedBy) {
+    if (!body.title || !body.priority || !body.reportedBy || !body.type) {
       return NextResponse.json({
         status: 'error',
         message: 'Missing required fields'
       }, { status: 400 });
     }
 
-    // Check for duplicate bug by title and open status
-    const existingBug = await collection.findOne({
+    const existingReport = await collection.findOne({
       title: body.title,
-      status: 'Open'
+      status: 'Open',
+      type: body.type
     });
 
-    if (existingBug) {
+    if (existingReport) {
       return NextResponse.json({
         status: 'error',
-        message: 'A similar open bug already exists',
-        data: existingBug
+        message: `A similar open ${body.type} already exists`,
+        data: existingReport
       }, { status: 409 });
     }
 
-    const bug: Bug = {
-      id: `BUG-${Date.now()}`,
+    const newReport: Bug = {
+      id: generateBugId(),
       title: body.title,
+      description: body.description,
       status: 'Open',
       priority: body.priority,
       reportedBy: body.reportedBy,
-      steps: body.steps,
+      steps: body.steps || [],
+      type: body.type,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      screenshot: body.screenshot || undefined
     };
 
-    // Insert bug
-    await collection.insertOne(bug);
+    if (!validateBug(newReport)) {
+      return NextResponse.json({
+        status: 'error',
+        message: 'Invalid bug report data'
+      }, { status: 400 });
+    }
 
-    // Trigger markdown sync
-    const bugs = await collection.find<Bug>({}).toArray();
-    const markdownContent = formatBugsToMarkdown(bugs);
+    await collection.insertOne(newReport);
+
+    const reports = await collection.find<Bug>({}).toArray();
+    const markdownContent = formatReportsToMarkdown(reports);
     const filePath = join(process.cwd(), 'docs', 'BUG_TRACKER.md');
     await writeFile(filePath, markdownContent, 'utf8');
 
     return NextResponse.json({
       status: 'success',
-      message: 'Bug added and tracker synced',
-      data: bug
+      message: `${body.type.charAt(0).toUpperCase() + body.type.slice(1)} added and tracker synced`,
+      data: newReport
     });
   } catch (error) {
-    console.error('Error adding bug:', error);
+    console.error('Error adding report:', error);
     return NextResponse.json({
       status: 'error',
-      message: error instanceof Error ? error.message : 'Failed to add bug',
+      message: error instanceof Error ? error.message : 'Failed to add report',
     }, { status: 500 });
   }
 }
 
-// Endpoint to update a bug
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
@@ -174,18 +188,35 @@ export async function PUT(request: NextRequest) {
     if (!body.id) {
       return NextResponse.json({
         status: 'error',
-        message: 'Bug ID is required'
+        message: 'Report ID is required'
       }, { status: 400 });
+    }
+
+    const existingReport = await collection.findOne({ id: body.id });
+    if (!existingReport) {
+      return NextResponse.json({
+        status: 'error',
+        message: 'Report not found'
+      }, { status: 404 });
     }
 
     const updateData: Partial<Bug> = {
       updatedAt: new Date()
     };
 
-    if (body.status) updateData.status = body.status;
-    if (body.priority) updateData.priority = body.priority;
+    if (body.status && BUG_STATUSES.includes(body.status)) updateData.status = body.status;
+    if (body.priority && BUG_PRIORITIES.includes(body.priority)) updateData.priority = body.priority;
     if (body.resolvedBy) updateData.resolvedBy = body.resolvedBy;
     if (body.notes) updateData.notes = body.notes;
+    if (body.screenshot) updateData.screenshot = body.screenshot;
+
+    const updatedReport = { ...existingReport, ...updateData };
+    if (!validateBug(updatedReport)) {
+      return NextResponse.json({
+        status: 'error',
+        message: 'Invalid bug report data'
+      }, { status: 400 });
+    }
 
     const result = await collection.updateOne(
       { id: body.id },
@@ -195,25 +226,24 @@ export async function PUT(request: NextRequest) {
     if (result.matchedCount === 0) {
       return NextResponse.json({
         status: 'error',
-        message: 'Bug not found'
+        message: 'Report not found'
       }, { status: 404 });
     }
 
-    // Trigger markdown sync
-    const bugs = await collection.find<Bug>({}).toArray();
-    const markdownContent = formatBugsToMarkdown(bugs);
+    const reports = await collection.find<Bug>({}).toArray();
+    const markdownContent = formatReportsToMarkdown(reports);
     const filePath = join(process.cwd(), 'docs', 'BUG_TRACKER.md');
     await writeFile(filePath, markdownContent, 'utf8');
 
     return NextResponse.json({
       status: 'success',
-      message: 'Bug updated and tracker synced'
+      message: 'Report updated and tracker synced'
     });
   } catch (error) {
-    console.error('Error updating bug:', error);
+    console.error('Error updating report:', error);
     return NextResponse.json({
       status: 'error',
-      message: error instanceof Error ? error.message : 'Failed to update bug',
+      message: error instanceof Error ? error.message : 'Failed to update report',
     }, { status: 500 });
   }
 }

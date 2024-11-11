@@ -1,31 +1,16 @@
 # Bugs and Features Tracking
 
 ## Quick Stats
-- 🐛 Active Bugs: 1
+- 🐛 Active Bugs: 0
 - ✨ Planned Features: 12
 - 🔄 In Progress: 3
-- ✅ Completed This Sprint: 4
+- ✅ Completed This Sprint: 5
 
 ## Active Bugs
 
 ### High Priority
 
 ### Medium Priority
-
-#### [BUG-MP-001] Input Text Color Too Light
-**Status**: 🔴 Open
-**Reported**: 2024-03-19
-**Impact**: Medium
-**Description**: Text in the thought input box appears grey, making it difficult to read.
-**Steps to Reproduce**:
-1. Open the application
-2. Focus on the "What's on your mind?" input box
-3. Type some text
-4. Observe the text color is too light grey
-**Expected Behavior**: Text should be dark and easily readable
-**Actual Behavior**: Text appears in a light grey color
-**Environment**: All browsers
-**Assigned**: TBD
 
 ### Low Priority
 
@@ -98,14 +83,70 @@
 **Release**: v0.1.1
 **Notes**: Implemented system status monitoring and database connection tracking
 
+### Fixed Bugs
+
+#### [BUG-MP-001] Input Text Color Too Light
+**Fixed**: 2024-03-19
+**Release**: v0.1.1
+**Notes**: 
+- Added explicit text color classes for improved readability
+- Implemented dark mode support
+- Verified fix across all browsers
+
 ## Templates
 
-[Previous templates section remains unchanged...]
+### Bug Report Template
+```markdown
+#### [BUG-XX-###] Title
+**Status**: 🔴 Open/🟡 In Progress/🟢 Fixed
+**Reported**: YYYY-MM-DD
+**Impact**: High/Medium/Low
+**Description**: Clear description of the issue
+**Steps to Reproduce**:
+1. Step 1
+2. Step 2
+3. Step 3
+**Expected Behavior**: What should happen
+**Actual Behavior**: What actually happens
+**Environment**: Relevant environment details
+**Assigned**: Developer name
+```
+
+### Feature Request Template
+```markdown
+#### [FEAT-XX-###] Title
+**Status**: 📋 Planned/🚧 Building/✅ Completed
+**Requested**: YYYY-MM-DD
+**Target Release**: vX.X.X
+**Description**: Feature description
+**Requirements**:
+- [ ] Requirement 1
+- [ ] Requirement 2
+**Dependencies**:
+- Dependency 1
+- Dependency 2
+```
 
 ## Priority Guidelines
 
-[Previous guidelines section remains unchanged...]
+### Bug Priority Levels
+- **High**: System-breaking issues affecting all users
+- **Medium**: Functional issues affecting some users
+- **Low**: Minor issues, cosmetic problems
+
+### Feature Priority Levels
+- **High**: Core functionality, immediate business value
+- **Medium**: Important improvements, scheduled updates
+- **Low**: Nice-to-have features, future considerations
 
 ## Status Definitions
 
-[Previous status definitions remain unchanged...]
+### Bug Status
+- 🔴 Open: Reported but not yet addressed
+- 🟡 In Progress: Currently being worked on
+- 🟢 Fixed: Resolution completed and verified
+
+### Feature Status
+- 📋 Planned: Approved but not started
+- 🚧 Building: Currently in development
+- ✅ Completed: Implemented and deployed

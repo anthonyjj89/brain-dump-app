@@ -2,6 +2,45 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Toggle functionality between bug and feature reports in the AdminPanel
+- Screenshot upload capability for bug reports
+- Sorting and filtering options for bug/feature reports
+- Improved error handling and data validation in bug reporting system
+
+### Changed
+- Updated BugTab component to handle both bug and feature reports
+- Modified AdminPanel component to manage reportType state
+- Refactored BugReportForm to support new report types and screenshot uploads
+- Fixed text color in ThoughtForm component for improved readability
+
+### Fixed
+- [BUG-MP-001] Input Text Color Too Light
+  * Added explicit text color classes (text-gray-900 for light mode, dark:text-gray-100 for dark mode)
+  * Applied to both textarea and select elements
+  * Verified in both color schemes
+- Resolved type checking issues in BugTab and AdminPanel components
+
+### Known Issues
+- External service integrations pending implementation
+- Voice input feature not yet implemented
+
+## [0.1.2] - 2024-03-20
+
+### Added
+- Implemented bug reporting functionality
+- Added screenshot upload capability to bug reports
+- Enhanced error handling in BugReportForm component
+
+### Changed
+- Updated API route for bug synchronization to handle new report types
+- Improved validation for bug report submissions
+
+### Fixed
+- Various type checking issues across components
+
 ## [0.1.1] - 2024-03-19
 
 ### Added

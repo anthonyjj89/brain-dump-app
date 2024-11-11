@@ -1,13 +1,12 @@
-import { ObjectId } from 'mongodb';
-
 export interface Bug {
-  _id?: ObjectId;
   id: string;
   title: string;
+  description: string;
   status: 'Open' | 'Closed';
   priority: 'Low' | 'Medium' | 'High';
   reportedBy: string;
   steps: string[];
+  type: 'bug' | 'feature';
   createdAt: Date;
   updatedAt: Date;
   resolvedBy?: string;
@@ -31,11 +30,13 @@ export function validateBug(bug: Partial<Bug>): bug is Bug {
   return (
     typeof bug.id === 'string' &&
     typeof bug.title === 'string' &&
+    typeof bug.description === 'string' &&
     BUG_STATUSES.includes(bug.status as any) &&
     BUG_PRIORITIES.includes(bug.priority as any) &&
     typeof bug.reportedBy === 'string' &&
     Array.isArray(bug.steps) &&
     bug.steps.every(step => typeof step === 'string') &&
+    ['bug', 'feature'].includes(bug.type) &&
     bug.createdAt instanceof Date &&
     bug.updatedAt instanceof Date &&
     (!bug.screenshot || (
