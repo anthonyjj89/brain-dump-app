@@ -40,6 +40,16 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
     return true;
   };
 
+  const triggerSync = async () => {
+    try {
+      // Trigger sync for both bugs and features
+      await fetch('/api/sync/bugs?type=bug');
+      await fetch('/api/sync/bugs?type=feature');
+    } catch (error) {
+      console.error('Error triggering sync:', error);
+    }
+  };
+
   const handleScreenshot = async () => {
     try {
       setIsCapturingScreenshot(true);
@@ -150,6 +160,14 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
       setPriority('Medium');
       setScreenshotPath('');
       onSubmitSuccess();
+
+      // Schedule sync after 20 seconds
+      console.log('Scheduling sync in 20 seconds...');
+      setTimeout(() => {
+        console.log('Triggering scheduled sync...');
+        triggerSync();
+      }, 20000);
+
     } catch (error) {
       console.error('Error submitting report:', error);
       setErrorMessage(error instanceof Error ? error.message : 'An unknown error occurred');
@@ -243,7 +261,7 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
           onChange={(e) => setPriority(e.target.value as 'Low' | 'Medium' | 'High')}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
         >
-          {BUG_PRIORITIES.map((p) => (
+          {BUG_PRIORITIES.map((p: string) => (
             <option key={p} value={p}>{p}</option>
           ))}
         </select>
