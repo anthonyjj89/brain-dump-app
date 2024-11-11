@@ -1,0 +1,29 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Explicitly declare text files that should be normalized
+*.md text
+*.ts text
+*.tsx text
+*.js text
+*.json text
+*.yml text
+*.yaml text
+*.toml text
+*.config.js text
+
+# Declare files that should have specific line endings
+*.sh text eol=lf
+*.ps1 text eol=crlf
+
+# Prevent certain files from being modified
+/docs/management-reports/** filter=git-crypt diff=git-crypt
+/docs/management-replies/** filter=git-crypt diff=git-crypt
+.env* filter=git-crypt diff=git-crypt
+
+# Treat binary files as-is
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.svg binary

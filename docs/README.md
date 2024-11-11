@@ -2,7 +2,7 @@
 
 A productivity tool that uses AI to capture, categorize, and sync your thoughts across various platforms.
 
-## Version: 0.1.1
+## Version: 0.1.0
 
 ## Overview
 
@@ -25,20 +25,12 @@ Brain Dump App allows users to quickly capture thoughts via text (and soon voice
 
 ## Features
 
-### Core Features
 - 🤖 AI-powered thought categorization
 - 📝 Text input (Voice coming soon)
 - 🔄 Review system for categorized thoughts
 - 🔗 External service integration (in progress)
 - 🎨 Clean, responsive UI
 - ⚡ Real-time updates
-
-### New in v0.1.1
-- 🗃️ MongoDB Atlas integration with connection pooling
-- 🐛 Bug tracking system with screenshot capability
-- 📊 System status monitoring
-- 🔄 Git hooks for automated tasks
-- 📚 Comprehensive documentation
 
 ## Getting Started
 
@@ -80,33 +72,10 @@ See [PROJECT_TREE.md](PROJECT_TREE.md) for detailed structure.
 
 ## Documentation
 
-### Core Documentation
 - [CHANGELOG.md](CHANGELOG.md) - Version history
 - [CURRENT_TASKS.md](CURRENT_TASKS.md) - Active development tasks
 - [HANDOVER.md](HANDOVER.md) - Development handover notes
 - [PROJECT_TREE.md](PROJECT_TREE.md) - Project structure
-
-### Development Guides
-- [BUG_TRACKING_SYSTEM_GUIDE.md](docs/BUG_TRACKING_SYSTEM_GUIDE.md) - Bug system implementation
-- [GIT_HUSKY_GUIDE.md](docs/GIT_HUSKY_GUIDE.md) - Git workflow and automation
-
-## Features in Development
-
-### Coming Soon
-1. External Service Integration
-   - TickTick for tasks
-   - Google Calendar for events
-   - Notion for notes
-
-2. Voice Input
-   - Real-time transcription
-   - Voice commands
-   - Multi-language support
-
-3. Enhanced AI Features
-   - Improved categorization
-   - Smart suggestions
-   - Pattern recognition
 
 ## Contributing
 
