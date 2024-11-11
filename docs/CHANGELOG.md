@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Real-time metrics endpoint for system status
+- Preloading mechanism for admin panel data
+- Visual feedback for live metrics updates
+- Loading states for admin panel button
 - Toggle functionality between bug and feature reports in the AdminPanel
 - Screenshot upload capability for bug reports
 - Sorting and filtering options for bug/feature reports
@@ -15,6 +19,10 @@ All notable changes to this project will be documented in this file.
 - Modified AdminPanel component to manage reportType state
 - Refactored BugReportForm to support new report types and screenshot uploads
 - Fixed text color in ThoughtForm component for improved readability
+- Consolidated bug tracking documentation into FEEDBACK_TRACKER.md
+- Improved status tab UI with live indicators
+- Updated metrics polling interval to 1 second
+- Separated metrics fetching from main status updates
 
 ### Fixed
 - [BUG-MP-001] Input Text Color Too Light
@@ -22,10 +30,19 @@ All notable changes to this project will be documented in this file.
   * Applied to both textarea and select elements
   * Verified in both color schemes
 - Resolved type checking issues in BugTab and AdminPanel components
+- [BUG] Multiple redundant documentation files
 
 ### Known Issues
 - External service integrations pending implementation
 - Voice input feature not yet implemented
+- Initial admin panel load taking 20-30 seconds
+- Live metrics not updating in real-time
+
+### Technical Debt
+- Need to investigate slow initial MongoDB connection
+- Need to optimize metrics polling mechanism
+- Consider WebSocket implementation for real-time updates
+- Implement connection pooling for faster DB access
 
 ## [0.1.2] - 2024-03-20
 

@@ -4,11 +4,36 @@ import React, { useState, useRef, useEffect } from 'react';
 import StatusTab from './AdminPanel/StatusTab';
 import BugTab from './AdminPanel/BugTab';
 
+// Preload status data
+async function preloadStatus() {
+  try {
+    // Start both requests in parallel
+    const [statusPromise, metricsPromise] = [
+      fetch('/api/status'),
+      fetch('/api/status/metrics')
+    ];
+    
+    // Wait for both to complete
+    await Promise.all([statusPromise, metricsPromise]);
+  } catch (error) {
+    console.error('Failed to preload status:', error);
+  }
+}
+
 const AdminPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'status' | 'feedback'>('status');
   const [reportType, setReportType] = useState<'bug' | 'feature'>('bug');
   const panelRef = useRef<HTMLDivElement>(null);
+  const [isPreloading, setIsPreloading] = useState(false);
+
+  // Preload status data when admin button appears
+  useEffect(() => {
+    if (!isPreloading) {
+      setIsPreloading(true);
+      preloadStatus().finally(() => setIsPreloading(false));
+    }
+  }, []);
 
   // Close panel when clicking outside
   useEffect(() => {
@@ -50,10 +75,22 @@ const AdminPanel: React.FC = () => {
   if (!isOpen) {
     return (
       <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-700 transition-colors"
+        onClick={async () => {
+          // Start preloading
+          setIsPreloading(true);
+          // Preload data and open panel when ready
+          await preloadStatus();
+          setIsPreloading(false);
+          setIsOpen(true);
+        }}
+        disabled={isPreloading}
+        className={`fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg transition-colors ${
+          isPreloading
+            ? 'bg-gray-600 cursor-wait'
+            : 'bg-gray-800 hover:bg-gray-700'
+        } text-white`}
       >
-        Show Admin Panel
+        {isPreloading ? 'Loading...' : 'Show Admin Panel'}
       </button>
     );
   }

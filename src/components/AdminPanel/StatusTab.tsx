@@ -32,47 +32,56 @@ interface StatusTabProps {
   onRefresh: () => void;
 }
 
-// Initial status data for immediate display
-const initialStatus: StatusData = {
-  database: {
-    connected: true,
-    name: 'Brain-Dump-Database',
-    version: '6.0',
-    region: 'eu-central-1',
+// Separate metrics interface
+interface Metrics {
+  pingTimeMs: number;
+  dataTransferred: number;
+}
+
+// Hook for real-time metrics
+function useMetrics() {
+  const [metrics, setMetrics] = useState<Metrics>({
     pingTimeMs: 0,
     dataTransferred: 0
-  },
-  ai: {
-    service: 'OpenRouter',
-    status: 'configured',
-    pingTimeMs: 0,
-    dataTransferred: 0
-  },
-  externalServices: {
-    tickTick: {
-      status: 'configured',
-      pingTimeMs: 0,
-      dataTransferred: 0
-    },
-    googleCalendar: {
-      status: 'not configured',
-      pingTimeMs: 0,
-      dataTransferred: 0
-    },
-    notion: {
-      status: 'not configured',
-      pingTimeMs: 0,
-      dataTransferred: 0
+  });
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function fetchMetrics() {
+      try {
+        const response = await fetch('/api/status/metrics');
+        if (!response.ok || !mounted) return;
+        const data = await response.json();
+        setMetrics(data);
+      } catch (error) {
+        console.error('Failed to fetch metrics:', error);
+      }
     }
-  },
-  lastChecked: new Date().toISOString()
-};
+
+    // Initial fetch
+    fetchMetrics();
+
+    // Update metrics every second
+    const intervalId = setInterval(fetchMetrics, 1000);
+
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
+  }, []); // Empty dependency array since we want this to run continuously
+
+  return metrics;
+}
 
 export default function StatusTab({ onRefresh }: StatusTabProps) {
-  const [status, setStatus] = useState<StatusData>(initialStatus); // Start with initial data
-  const [loading, setLoading] = useState(false); // Don't start with loading since we have initial data
+  const [status, setStatus] = useState<StatusData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
+
+  // Get real-time metrics
+  const metrics = useMetrics();
 
   const checkStatus = useCallback(async () => {
     // Debounce: Skip if last update was less than 5 seconds ago
@@ -96,14 +105,24 @@ export default function StatusTab({ onRefresh }: StatusTabProps) {
   }, [lastUpdated]);
 
   useEffect(() => {
-    // Start fetching real data immediately
+    // Initial check
     checkStatus();
-    // Poll every 30 seconds
+    
+    // Poll every 30 seconds for full status
     const intervalId = setInterval(checkStatus, 30000);
+    
+    // Cleanup
     return () => clearInterval(intervalId);
   }, [checkStatus]);
 
-  // Show error if there is one
+  if (loading && !status) { // Only show loading on initial load
+    return (
+      <div className="flex justify-center py-4">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4">
@@ -112,7 +131,7 @@ export default function StatusTab({ onRefresh }: StatusTabProps) {
     );
   }
 
-  return (
+  return status ? (
     <div className="space-y-4">
       {/* Database Status */}
       <div className="border-b pb-2">
@@ -134,8 +153,18 @@ export default function StatusTab({ onRefresh }: StatusTabProps) {
         <div className="text-sm text-gray-600">
           <p>{status.database.name} v{status.database.version}</p>
           <p>Region: {status.database.region}</p>
-          <p>Ping: {status.database.pingTimeMs}ms</p>
-          <p>Data Transferred: {status.database.dataTransferred} bytes</p>
+          <div className="flex justify-between items-center">
+            <p>Ping: {metrics.pingTimeMs}ms</p>
+            {metrics.pingTimeMs !== status.database.pingTimeMs && (
+              <span className="text-xs text-green-600">Live</span>
+            )}
+          </div>
+          <div className="flex justify-between items-center">
+            <p>Data Transferred: {metrics.dataTransferred} bytes</p>
+            {metrics.dataTransferred !== status.database.dataTransferred && (
+              <span className="text-xs text-green-600">Live</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -201,5 +230,5 @@ export default function StatusTab({ onRefresh }: StatusTabProps) {
         {loading ? 'Refreshing...' : 'Refresh Status'}
       </button>
     </div>
-  );
+  ) : null;
 }
