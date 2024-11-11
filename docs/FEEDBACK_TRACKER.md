@@ -1,26 +1,17 @@
 # Project Feedback Tracker
 
-> Last Updated: 2024-11-11T20:00:57.090Z
+> Last Updated: 2024-11-11T20:01:35.232Z
 > This document is automatically synchronized with MongoDB. Manual edits will be overwritten.
 
 ## Quick Stats
 🔄 Auto-generated from database
-- 🐛 Active Bugs: 16
+- 🐛 Active Bugs: 15
 - ✨ Active Features: 1
-- ✅ Recently Completed: 0
+- ✅ Recently Completed: 1
 
 ## Active Reports
 
 ### Open Bugs
-
-#### [BUG-M3DFBJ90-NDC] 2nd test after rebuild bug bug
-**Status**: 🔴 Open
-**Type**: 🐛 Bug
-**Priority**: High
-**Reported By**: User
-**Created**: 11/11/2024, 11:35:49 PM
-**Steps to Reproduce**:
-1. bug
 
 #### [BUG-M3DF2V20-AZF] after deployment with sync changes
 **Status**: 🔴 Open
@@ -161,6 +152,19 @@
 **Priority**: Medium
 **Reported By**: User
 **Created**: 11/11/2024, 1:34:44 PM
+
+
+### Recently Completed
+
+#### [BUG-M3DFBJ90-NDC] 2nd test after rebuild bug bug
+**Status**: 🟢 Closed
+**Type**: 🐛 Bug
+**Priority**: High
+**Reported By**: User
+**Created**: 11/11/2024, 11:35:49 PM
+**Steps to Reproduce**:
+1. bug
+**Resolved By**: Anthony
 
 
 ## Guidelines
