@@ -105,47 +105,59 @@ function formatReportsToMarkdown(reports) {
 - 🚧 Building: Currently in development
 - ✅ Completed: Implemented and deployed
 
-## Database Schema
+## Database Details
 
-### Bug Report Schema
+### Collections
+- \`bugs\`: Bug reports and tracking
+- \`features\`: Feature requests and planning
+
+### Schema Overview
 \`\`\`typescript
-interface BugReport {
+interface Report {
+  _id: ObjectId;
   id: string;
   title: string;
-  type: 'bug';
-  status: BugStatus;
-  priority: Priority;
   description: string;
-  steps: string[];
-  expected: string;
-  actual: string;
-  impact: string;
-  technical: string;
-  notes: string;
-  reported: Date;
-  updated: Date;
-  resolved?: Date;
+  status: Status;
+  priority: Priority;
+  type: 'bug' | 'feature';
+  reportedBy: string;
+  steps?: string[];
+  createdAt: Date;
+  updatedAt: Date;
   resolvedBy?: string;
+  notes?: string;
+  screenshot?: {
+    path: string;
+    timestamp: Date;
+  };
 }
 \`\`\`
 
-### Feature Request Schema
-\`\`\`typescript
-interface FeatureRequest {
-  id: string;
-  title: string;
-  type: 'feature';
-  status: FeatureStatus;
-  priority: Priority;
-  description: string;
-  requirements: string[];
-  dependencies: string[];
-  technical: string;
-  requested: Date;
-  updated: Date;
-  completed?: Date;
-  implementedBy?: string;
-}
+## Templates
+
+### Bug Report Template
+\`\`\`markdown
+#### [BUG-XX-###] Title
+**Status**: 🔴 Open/🟡 In Progress/🟢 Fixed
+**Priority**: High/Medium/Low
+**Description**: Clear description of the issue
+**Steps to Reproduce**:
+1. Step 1
+2. Step 2
+**Expected**: What should happen
+**Actual**: What actually happens
+\`\`\`
+
+### Feature Request Template
+\`\`\`markdown
+#### [FEAT-XX-###] Title
+**Status**: 📋 Planned/🚧 Building/✅ Completed
+**Priority**: High/Medium/Low
+**Description**: Feature description
+**Requirements**:
+- [ ] Requirement 1
+- [ ] Requirement 2
 \`\`\`
 
 ---
@@ -189,7 +201,7 @@ function formatReportToMarkdown(report) {
   return content;
 }
 
-async function main() {
+async function syncFromDB() {
   const client = new MongoClient(uri);
 
   try {
@@ -241,4 +253,88 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+async function updateBugStatus(bugId, newStatus, resolvedBy) {
+  const client = new MongoClient(uri);
+
+  try {
+    await client.connect();
+    console.log('Connected to MongoDB');
+
+    const db = client.db();
+    const bugsCollection = db.collection('bugs');
+    const featuresCollection = db.collection('features');
+
+    // Try to find the report in both collections
+    let report = await bugsCollection.findOne({ id: bugId });
+    let collection = bugsCollection;
+    let type = 'bug';
+
+    if (!report) {
+      report = await featuresCollection.findOne({ id: bugId });
+      collection = featuresCollection;
+      type = 'feature';
+    }
+
+    if (!report) {
+      console.error(`Report ${bugId} not found`);
+      return;
+    }
+
+    // Update the report
+    const updateData = {
+      status: newStatus,
+      updatedAt: new Date()
+    };
+
+    if (newStatus === 'Closed' && resolvedBy) {
+      updateData.resolvedBy = resolvedBy;
+    }
+
+    await collection.updateOne(
+      { id: bugId },
+      { $set: updateData }
+    );
+
+    console.log(`Updated ${type} ${bugId} status to ${newStatus}`);
+
+    // Sync the changes to markdown
+    await syncFromDB();
+
+  } catch (error) {
+    console.error('Error:', error);
+  } finally {
+    await client.close();
+  }
+}
+
+// Parse command line arguments
+const args = process.argv.slice(2);
+const command = args[0];
+
+if (!command) {
+  console.log(`
+Usage:
+  node sync-local.js sync                               # Sync from DB to markdown
+  node sync-local.js update <id> <status> [resolvedBy]  # Update bug/feature status
+  
+Examples:
+  node sync-local.js sync
+  node sync-local.js update BUG-001 Closed "John Doe"
+  node sync-local.js update FEAT-001 "In Progress"
+`);
+  process.exit(1);
+}
+
+if (command === 'sync') {
+  syncFromDB();
+} else if (command === 'update') {
+  const [id, status, resolvedBy] = args.slice(1);
+  if (!id || !status) {
+    console.error('Please provide both id and status');
+    process.exit(1);
+  }
+  updateBugStatus(id, status, resolvedBy);
+} else {
+  console.error('Unknown command:', command);
+  process.exit(1);
+}

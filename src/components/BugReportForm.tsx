@@ -40,23 +40,6 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
     return true;
   };
 
-  const triggerSync = async () => {
-    try {
-      // Skip auth if URL is localhost
-      const isLocalhost = window.location.hostname === 'localhost';
-      const headers: HeadersInit = {};
-      if (!isLocalhost) {
-        headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_SYNC_TOKEN}`;
-      }
-
-      // Trigger sync for both bugs and features
-      await fetch('/api/sync/bugs?type=bug', { headers });
-      await fetch('/api/sync/bugs?type=feature', { headers });
-    } catch (error) {
-      console.error('Error triggering sync:', error);
-    }
-  };
-
   const handleScreenshot = async () => {
     try {
       setIsCapturingScreenshot(true);
@@ -167,13 +150,6 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
       setPriority('Medium');
       setScreenshotPath('');
       onSubmitSuccess();
-
-      // Schedule sync after 20 seconds
-      console.log('Scheduling sync in 20 seconds...');
-      setTimeout(() => {
-        console.log('Triggering scheduled sync...');
-        triggerSync();
-      }, 20000);
 
     } catch (error) {
       console.error('Error submitting report:', error);

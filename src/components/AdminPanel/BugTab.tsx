@@ -31,16 +31,7 @@ export default function BugTab({
       setReports([]); // Clear reports while loading
       console.log(`Fetching ${reportType} reports...`);
 
-      // Skip auth if URL is localhost
-      const isLocalhost = window.location.hostname === 'localhost';
-      const headers: HeadersInit = {};
-      if (!isLocalhost) {
-        headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_SYNC_TOKEN}`;
-      }
-
-      const response = await fetch(`/api/sync/bugs?type=${reportType}`, {
-        headers
-      });
+      const response = await fetch(`/api/sync/bugs?type=${reportType}`);
 
       if (!response.ok) {
         throw new Error('Failed to fetch reports');
