@@ -5,6 +5,24 @@ import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { Bug, generateBugId, validateBug, BUG_STATUSES, BUG_PRIORITIES } from '@/lib/schemas/bug';
 
+// Verify sync token for GitHub Actions
+function isAuthorizedSync(request: NextRequest): boolean {
+  const authHeader = request.headers.get('authorization');
+  const syncToken = process.env.SYNC_TOKEN;
+  
+  // Skip auth check in development
+  if (process.env.NODE_ENV === 'development') {
+    return true;
+  }
+
+  if (!syncToken) {
+    console.error('SYNC_TOKEN environment variable not set');
+    return false;
+  }
+
+  return authHeader === `Bearer ${syncToken}`;
+}
+
 function getStatusEmoji(status: Bug['status']): string {
   switch (status) {
     case 'Open': return '🔴';
@@ -68,7 +86,7 @@ function formatReportsToMarkdown(reports: Bug[]): string {
   }
 
   if (recentlyClosed.length > 0) {
-    content += '\n### Recently Closed\n\n';
+    content += '\n### Recently Completed\n\n';
     recentlyClosed.forEach(item => {
       content += formatReportToMarkdown(item);
     });
@@ -101,59 +119,47 @@ function formatReportsToMarkdown(reports: Bug[]): string {
 - 🚧 Building: Currently in development
 - ✅ Completed: Implemented and deployed
 
-## Database Details
+## Database Schema
 
-### Collections
-- \`bugs\`: Bug reports and tracking
-- \`features\`: Feature requests and planning
-
-### Schema Overview
+### Bug Report Schema
 \`\`\`typescript
-interface Report {
-  _id: ObjectId;
+interface BugReport {
   id: string;
   title: string;
-  description: string;
-  status: Status;
+  type: 'bug';
+  status: BugStatus;
   priority: Priority;
-  type: 'bug' | 'feature';
-  reportedBy: string;
-  steps?: string[];
-  createdAt: Date;
-  updatedAt: Date;
+  description: string;
+  steps: string[];
+  expected: string;
+  actual: string;
+  impact: string;
+  technical: string;
+  notes: string;
+  reported: Date;
+  updated: Date;
+  resolved?: Date;
   resolvedBy?: string;
-  notes?: string;
-  screenshot?: {
-    path: string;
-    timestamp: Date;
-  };
 }
 \`\`\`
 
-## Templates
-
-### Bug Report Template
-\`\`\`markdown
-#### [BUG-XX-###] Title
-**Status**: 🔴 Open/🟡 In Progress/🟢 Fixed
-**Priority**: High/Medium/Low
-**Description**: Clear description of the issue
-**Steps to Reproduce**:
-1. Step 1
-2. Step 2
-**Expected**: What should happen
-**Actual**: What actually happens
-\`\`\`
-
-### Feature Request Template
-\`\`\`markdown
-#### [FEAT-XX-###] Title
-**Status**: 📋 Planned/🚧 Building/✅ Completed
-**Priority**: High/Medium/Low
-**Description**: Feature description
-**Requirements**:
-- [ ] Requirement 1
-- [ ] Requirement 2
+### Feature Request Schema
+\`\`\`typescript
+interface FeatureRequest {
+  id: string;
+  title: string;
+  type: 'feature';
+  status: FeatureStatus;
+  priority: Priority;
+  description: string;
+  requirements: string[];
+  dependencies: string[];
+  technical: string;
+  requested: Date;
+  updated: Date;
+  completed?: Date;
+  implementedBy?: string;
+}
 \`\`\`
 
 ---
@@ -199,6 +205,14 @@ function formatReportToMarkdown(report: Bug): string {
 
 export async function GET(request: NextRequest) {
   try {
+    // Verify authorization for sync requests
+    if (!isAuthorizedSync(request)) {
+      return NextResponse.json({
+        status: 'error',
+        message: 'Unauthorized'
+      }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const type = (searchParams.get('type') || 'bug') as 'bug' | 'feature';
     const collectionName = type === 'feature' ? 'features' : 'bugs';

@@ -30,10 +30,19 @@ jobs:
       
       - name: Run sync script
         env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          MONGODB_URI: ${{ secrets.HEROKU_MONGODB_URI }}  # Use Heroku's MongoDB URI
+          NEXT_PUBLIC_APP_URL: https://brain-dump-app-exp-f6bb18db1eac.herokuapp.com  # Heroku app URL
           BRANCH_NAME: experimental
-        run: ./scripts/sync-feedback.sh
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fetch latest data from Heroku's database
+          curl -X GET "$NEXT_PUBLIC_APP_URL/api/sync/bugs?type=bug" \
+            -H "Authorization: Bearer ${{ secrets.SYNC_TOKEN }}"
+          curl -X GET "$NEXT_PUBLIC_APP_URL/api/sync/bugs?type=feature" \
+            -H "Authorization: Bearer ${{ secrets.SYNC_TOKEN }}"
+          
+          # Run local sync script to update markdown
+          ./scripts/sync-feedback.sh
       
       - name: Check for changes
         id: check_changes
