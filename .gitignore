@@ -35,7 +35,8 @@ yarn-error.log*
 Thumbs.db
 
 # Development only
-/docs
+/docs/*
+!/docs/DEPLOYMENT.md
 *.log
 .husky
 
