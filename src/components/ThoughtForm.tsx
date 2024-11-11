@@ -52,7 +52,7 @@ export default function ThoughtForm({ onSubmitSuccess }: ThoughtFormProps) {
       )}
       
       <div>
-        <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="content" className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
           What&apos;s on your mind?
         </label>
         <textarea
@@ -60,21 +60,28 @@ export default function ThoughtForm({ onSubmitSuccess }: ThoughtFormProps) {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           rows={4}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
+            focus:outline-none focus:ring-2 focus:ring-blue-500 
+            bg-white dark:bg-gray-800
+            text-gray-800 dark:text-gray-100
+            placeholder-gray-500 dark:placeholder-gray-400"
           placeholder="Type your thought here..."
           required
         />
       </div>
       
       <div>
-        <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="type" className="block text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
           Input Type
         </label>
         <select
           id="type"
           value={type}
           onChange={(e) => setType(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+          className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm 
+            focus:outline-none focus:ring-2 focus:ring-blue-500 
+            bg-white dark:bg-gray-800
+            text-gray-800 dark:text-gray-100"
         >
           <option value="text">Text</option>
           <option value="voice">Voice</option>
