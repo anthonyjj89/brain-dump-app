@@ -12,6 +12,24 @@ const AdminPanel: React.FC = () => {
   const panelRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
+  // Sync feedback tracker when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      // Trigger sync when panel opens
+      fetch('/api/sync/bugs?type=bug')
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to sync bugs');
+          return fetch('/api/sync/bugs?type=feature');
+        })
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to sync features');
+        })
+        .catch(error => {
+          console.error('Error syncing feedback tracker:', error);
+        });
+    }
+  }, [isOpen]);
+
   // Prefetch status data when component mounts
   useEffect(() => {
     // Start prefetching system status
