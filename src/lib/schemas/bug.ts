@@ -2,7 +2,7 @@ export interface Bug {
   id: string;
   title: string;
   description: string;
-  status: 'Open' | 'Closed';
+  status: 'Open' | 'In Progress' | 'Closed';
   priority: 'Low' | 'Medium' | 'High';
   type: 'bug' | 'feature';  // Adding back the type field
   reportedBy: string;
@@ -21,7 +21,7 @@ export interface Feature {
   id: string;
   title: string;
   description: string;
-  status: 'Open' | 'Closed';
+  status: 'Open' | 'In Progress' | 'Closed';
   priority: 'Low' | 'Medium' | 'High';
   type: 'feature';  // Always 'feature' for consistency
   requestedBy: string;
@@ -36,7 +36,7 @@ export interface Feature {
   };
 }
 
-export const BUG_STATUSES = ['Open', 'Closed'] as const;
+export const BUG_STATUSES = ['Open', 'In Progress', 'Closed'] as const;
 export const BUG_PRIORITIES = ['Low', 'Medium', 'High'] as const;
 export const REPORT_TYPES = ['bug', 'feature'] as const;
 
