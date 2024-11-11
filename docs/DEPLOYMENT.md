@@ -1,5 +1,24 @@
 # Deployment Guide
 
+## Branch Structure
+
+### Production Branch (`main`)
+- Deployed to Heroku production environment
+- Contains stable, production-ready code
+- All features are thoroughly tested
+- Deployment is automated via Heroku Git integration
+
+### Development Branch (`dev`)
+- Used for feature integration and testing
+- Contains latest development changes
+- Features are tested here before merging to main
+- Can be deployed to staging environment if needed
+
+### Experimental Branch (`experimental`)
+- Used for experimental features and testing
+- Not deployed to any environment
+- Changes may be merged to dev if successful
+
 ## Prerequisites
 
 - Heroku CLI installed
@@ -15,9 +34,7 @@ The following environment variables need to be set in your Heroku application:
 # Required
 MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>
 NODE_ENV=production
-
-# Optional (add as needed)
-# Add any other environment variables here
+OPENROUTER_API_KEY=your_openrouter_key
 ```
 
 ### Setting Environment Variables
@@ -29,27 +46,25 @@ NODE_ENV=production
 2. **Heroku Environment**
    ```bash
    # Set MongoDB URI
-   heroku config:set MONGODB_URI=your_mongodb_uri --remote <remote-name>
-   
+   heroku config:set MONGODB_URI=your_mongodb_uri
+
    # Set Node environment
-   heroku config:set NODE_ENV=production --remote <remote-name>
+   heroku config:set NODE_ENV=production
+
+   # Set OpenRouter API key
+   heroku config:set OPENROUTER_API_KEY=your_openrouter_key
    ```
 
 ## Deployment Pipeline
 
 ### 1. Development Environment (dev)
 ```bash
-git push dev dev:main
+git push origin dev
 ```
 
-### 2. Staging Environment (staging)
+### 2. Production Environment (main)
 ```bash
-git push staging staging:main
-```
-
-### 3. Production Environment (prod)
-```bash
-git push prod main:main
+git push origin main
 ```
 
 ## Build Process
@@ -65,47 +80,50 @@ The application uses the following build configuration:
 
 2. **Production Dependencies**: Only production dependencies are installed during deployment:
    ```json
-   "heroku-postbuild": "npm ci --omit=dev && npm run build"
+   "scripts": {
+     "build": "next build",
+     "start": "next start"
+   }
    ```
-
-3. **Development Tools**: Development tools (husky, etc.) are properly configured as devDependencies and are excluded from production builds.
 
 ## MongoDB Setup
 
-1. **Create MongoDB Atlas Cluster**
-   - Sign up for MongoDB Atlas
-   - Create a new cluster
-   - Configure network access (IP whitelist)
-   - Create database user
-   - Get connection string
+1. **MongoDB Atlas Configuration**
+   - Database: Brain-Dump-Database
+   - Region: AWS Frankfurt (eu-central-1)
+   - Connection pooling enabled
+   - Network access configured for Heroku IPs
 
-2. **Configure Connection**
+2. **Connection Configuration**
    - Use connection string in environment variables
-   - Format: `mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>`
+   - Connection pooling is automatically configured
+   - Health monitoring is active
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **Build Failures**
-   - Ensure all production dependencies are correctly listed in `dependencies` (not `devDependencies`)
-   - Verify Node.js version compatibility
    - Check build logs: `heroku logs --tail`
+   - Verify Node.js version compatibility
+   - Check for missing dependencies
 
 2. **Runtime Errors**
-   - Verify environment variables are correctly set
    - Check application logs: `heroku logs --tail`
+   - Verify environment variables
+   - Check MongoDB connection
 
 3. **Database Connection Issues**
-   - Verify MONGODB_URI is correctly set
-   - Check MongoDB Atlas network access settings
-   - Ensure database user has correct permissions
+   - Verify MONGODB_URI is correct
+   - Check MongoDB Atlas network access
+   - Monitor connection pool status
 
 ## Monitoring
 
 1. **Application Health**
    - Health check endpoint: `/api/health`
-   - Monitors application status and dependencies
+   - Status endpoint: `/api/status`
+   - Metrics endpoint: `/api/status/metrics`
 
 2. **Logs**
    - View logs: `heroku logs --tail`
@@ -114,17 +132,19 @@ The application uses the following build configuration:
 ## Best Practices
 
 1. **Version Control**
-   - Keep development and production branches separate
-   - Use feature branches for development
-   - Merge through proper review process
+   - Keep main branch stable
+   - Develop in dev branch
+   - Test experimental features in experimental branch
+   - Use proper commit messages
 
 2. **Testing**
-   - Test locally with `heroku local` before deployment
-   - Verify application in staging before production deployment
+   - Test locally before deployment
+   - Verify in development environment
+   - Monitor production deployment
 
 3. **Security**
    - Keep environment variables secure
-   - Regularly update dependencies
+   - Update dependencies regularly
    - Monitor for security advisories
 
 ## Rollback Procedure
@@ -143,7 +163,8 @@ If issues are encountered after deployment:
 
 ## Support
 
-For deployment issues or questions:
+For deployment issues:
 1. Check Heroku status: https://status.heroku.com/
-2. Review Heroku logs: `heroku logs --tail`
-3. Consult team lead or DevOps support
+2. Review application logs: `heroku logs --tail`
+3. Check MongoDB Atlas status
+4. Monitor system metrics in Admin Panel

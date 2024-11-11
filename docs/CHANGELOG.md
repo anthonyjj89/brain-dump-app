@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Branch management improvements
+  * Created experimental branch from dev
+  * Streamlined branch structure to main, dev, and experimental
+  * Cleaned up feature branches
+  * Synchronized with Heroku deployment
 - MongoDB connection optimization
   * Added connection pooling with min/max size
   * Added connection warm-up on app start
