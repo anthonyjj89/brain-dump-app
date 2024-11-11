@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import StatusTab from './StatusTab';
 import BugTab from './BugTab';
 
@@ -9,6 +10,54 @@ const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'status' | 'bugs'>('status');
   const [reportType, setReportType] = useState<'bug' | 'feature'>('bug');
   const panelRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
+
+  // Prefetch status data when component mounts
+  useEffect(() => {
+    // Start prefetching system status
+    queryClient.prefetchQuery({
+      queryKey: ['systemStatus'],
+      queryFn: async () => {
+        const response = await fetch('/api/status');
+        if (!response.ok) {
+          throw new Error('Failed to fetch status');
+        }
+        return response.json();
+      },
+      staleTime: 60 * 1000, // Consider data fresh for 1 minute
+    });
+
+    // Start prefetching metrics
+    queryClient.prefetchQuery({
+      queryKey: ['metrics'],
+      queryFn: async () => {
+        const response = await fetch('/api/status/metrics');
+        if (!response.ok) {
+          throw new Error('Failed to fetch metrics');
+        }
+        return response.json();
+      },
+      staleTime: 1000, // Consider data fresh for 1 second
+    });
+
+    // Set up background polling for metrics when panel is closed
+    const intervalId = setInterval(() => {
+      if (!isOpen) {
+        queryClient.prefetchQuery({
+          queryKey: ['metrics'],
+          queryFn: async () => {
+            const response = await fetch('/api/status/metrics');
+            if (!response.ok) {
+              throw new Error('Failed to fetch metrics');
+            }
+            return response.json();
+          },
+        });
+      }
+    }, 5000); // Poll every 5 seconds when panel is closed
+
+    return () => clearInterval(intervalId);
+  }, [queryClient, isOpen]);
 
   // Close panel when clicking outside
   useEffect(() => {

@@ -9,6 +9,7 @@ interface StatusData {
     region: string;
     pingTimeMs: number;
     dataTransferred: number;
+    error?: string;
   };
   ai: {
     service: string;
@@ -24,6 +25,7 @@ interface StatusData {
     };
   };
   lastChecked: string;
+  fromCache?: boolean;
 }
 
 interface CacheData {
@@ -46,16 +48,18 @@ let statusCache: CacheData = {
 };
 
 const CACHE_DURATION = 30000; // 30 seconds
+const TIMEOUT_DURATION = 5000; // 5 seconds
+const STALE_CACHE_DURATION = 60000; // 1 minute - how long to use cache in error cases
 
 // Initial status data with reasonable defaults
 const initialStatus: StatusData = {
   database: {
-    connected: true,
+    connected: false,
     name: 'Brain-Dump-Database',
     version: '6.0',
     region: 'eu-central-1',
-    pingTimeMs: 150, // Reasonable default ping
-    dataTransferred: 1024 // 1KB as initial value
+    pingTimeMs: 0,
+    dataTransferred: 0
   },
   ai: {
     service: 'OpenRouter',
@@ -97,15 +101,15 @@ async function getDetailedStatus(): Promise<StatusData> {
     const startTime = Date.now();
     const pingPromise = db.command({ ping: 1 });
     const pingTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Ping timeout')), 5000)
+      setTimeout(() => reject(new Error('Ping timeout')), TIMEOUT_DURATION)
     );
     await Promise.race([pingPromise, pingTimeout]);
     const pingTime = Date.now() - startTime;
 
     // Get server information with timeout
-    const serverStatusPromise = db.command<ServerStatus>({ serverStatus: 1 });
+    const serverStatusPromise = db.command({ serverStatus: 1 });
     const statusTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Server status timeout')), 5000)
+      setTimeout(() => reject(new Error('Server status timeout')), TIMEOUT_DURATION)
     );
     const serverStatus = await Promise.race([serverStatusPromise, statusTimeout]) as ServerStatus;
 
@@ -150,25 +154,57 @@ async function getDetailedStatus(): Promise<StatusData> {
     };
   } catch (error) {
     console.error('Failed to get detailed status:', error);
-    // Return last cached data or initial status with error indication
+    
+    // If we have recent cache, use it but mark as from cache
+    if (statusCache.data && Date.now() - statusCache.timestamp < STALE_CACHE_DURATION) {
+      return {
+        ...statusCache.data,
+        database: {
+          ...statusCache.data.database,
+          connected: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        },
+        lastChecked: new Date().toISOString(),
+        fromCache: true
+      };
+    }
+
+    // If no recent cache, return initial status with error
     return {
-      ...statusCache.data || initialStatus,
+      ...initialStatus,
       database: {
-        ...(statusCache.data?.database || initialStatus.database),
+        ...initialStatus.database,
         connected: false,
-        pingTimeMs: 0,
-        dataTransferred: statusCache.data?.database.dataTransferred || 0
+        error: error instanceof Error ? error.message : 'Unknown error'
       },
       lastChecked: new Date().toISOString()
     };
   }
 }
 
+// Warm up connection on app start
+(async function warmUpConnection() {
+  try {
+    console.log('Warming up database connection...');
+    const status = await getDetailedStatus();
+    statusCache = {
+      data: status,
+      timestamp: Date.now()
+    };
+    console.log('Database connection warmed up successfully');
+  } catch (error) {
+    console.error('Failed to warm up database connection:', error);
+  }
+})();
+
 export async function GET(request: NextRequest) {
   try {
     // Return cached data if it's still valid
     if (statusCache.data && Date.now() - statusCache.timestamp < CACHE_DURATION) {
-      return NextResponse.json(statusCache.data, {
+      return NextResponse.json({
+        ...statusCache.data,
+        fromCache: true
+      }, {
         status: 200,
         headers: {
           'Cache-Control': 'private, max-age=30',
@@ -187,7 +223,7 @@ export async function GET(request: NextRequest) {
     };
 
     return NextResponse.json(statusData, { 
-      status: 200,
+      status: statusData.database.connected ? 200 : 503,
       headers: {
         'Cache-Control': 'private, max-age=30',
         'Content-Type': 'application/json'
@@ -195,16 +231,36 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Status check failed:', error);
-    // Return last cached data or initial status on error
-    const fallbackData = statusCache.data || initialStatus;
+    
+    // If we have recent cache, use it
+    if (statusCache.data && Date.now() - statusCache.timestamp < STALE_CACHE_DURATION) {
+      return NextResponse.json({
+        ...statusCache.data,
+        database: {
+          ...statusCache.data.database,
+          connected: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        },
+        fromCache: true
+      }, { 
+        status: 503,
+        headers: {
+          'Cache-Control': 'no-store',
+          'Content-Type': 'application/json'
+        }
+      });
+    }
+
+    // If no cache, return error with initial status
     return NextResponse.json({
-      ...fallbackData,
+      ...initialStatus,
       database: {
-        ...fallbackData.database,
-        connected: false
+        ...initialStatus.database,
+        connected: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
       }
     }, { 
-      status: 200,
+      status: 503,
       headers: {
         'Cache-Control': 'no-store',
         'Content-Type': 'application/json'
