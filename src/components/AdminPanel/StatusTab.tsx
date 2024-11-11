@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface StatusData {
   database: {
@@ -32,13 +32,49 @@ interface StatusTabProps {
   onRefresh: () => void;
 }
 
+// Initial status data for immediate display
+const initialStatus: StatusData = {
+  database: {
+    connected: true,
+    name: 'Brain-Dump-Database',
+    version: '6.0',
+    region: 'eu-central-1',
+    pingTimeMs: 0,
+    dataTransferred: 0
+  },
+  ai: {
+    service: 'OpenRouter',
+    status: 'configured',
+    pingTimeMs: 0,
+    dataTransferred: 0
+  },
+  externalServices: {
+    tickTick: {
+      status: 'configured',
+      pingTimeMs: 0,
+      dataTransferred: 0
+    },
+    googleCalendar: {
+      status: 'not configured',
+      pingTimeMs: 0,
+      dataTransferred: 0
+    },
+    notion: {
+      status: 'not configured',
+      pingTimeMs: 0,
+      dataTransferred: 0
+    }
+  },
+  lastChecked: new Date().toISOString()
+};
+
 export default function StatusTab({ onRefresh }: StatusTabProps) {
-  const [status, setStatus] = useState<StatusData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<StatusData>(initialStatus); // Start with initial data
+  const [loading, setLoading] = useState(false); // Don't start with loading since we have initial data
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
 
-  async function checkStatus() {
+  const checkStatus = useCallback(async () => {
     // Debounce: Skip if last update was less than 5 seconds ago
     if (Date.now() - lastUpdated < 5000) return;
 
@@ -57,23 +93,17 @@ export default function StatusTab({ onRefresh }: StatusTabProps) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [lastUpdated]);
 
   useEffect(() => {
+    // Start fetching real data immediately
     checkStatus();
-    // Poll every 30 seconds instead of every second
+    // Poll every 30 seconds
     const intervalId = setInterval(checkStatus, 30000);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [checkStatus]);
 
-  if (loading && !status) { // Only show loading on initial load
-    return (
-      <div className="flex justify-center py-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
+  // Show error if there is one
   if (error) {
     return (
       <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4">
@@ -82,19 +112,24 @@ export default function StatusTab({ onRefresh }: StatusTabProps) {
     );
   }
 
-  return status ? (
+  return (
     <div className="space-y-4">
       {/* Database Status */}
       <div className="border-b pb-2">
         <div className="flex justify-between items-center mb-1">
           <span className="font-medium">Database</span>
-          <span className={`px-2 py-1 rounded-full text-xs ${
-            status.database.connected
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800'
-          }`}>
-            {status.database.connected ? 'Connected' : 'Disconnected'}
-          </span>
+          <div className="flex items-center space-x-2">
+            <span className={`px-2 py-1 rounded-full text-xs ${
+              status.database.connected
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {status.database.connected ? 'Connected' : 'Disconnected'}
+            </span>
+            {loading && (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            )}
+          </div>
         </div>
         <div className="text-sm text-gray-600">
           <p>{status.database.name} v{status.database.version}</p>
@@ -156,10 +191,15 @@ export default function StatusTab({ onRefresh }: StatusTabProps) {
           checkStatus();
           onRefresh();
         }}
-        className="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-colors"
+        disabled={loading}
+        className={`mt-4 w-full py-2 rounded transition-colors ${
+          loading
+            ? 'bg-gray-300 cursor-not-allowed'
+            : 'bg-blue-600 text-white hover:bg-blue-700'
+        }`}
       >
-        Refresh Status
+        {loading ? 'Refreshing...' : 'Refresh Status'}
       </button>
     </div>
-  ) : null;
+  );
 }
