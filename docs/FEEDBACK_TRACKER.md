@@ -1,11 +1,11 @@
 # Project Feedback Tracker
 
-> Last Updated: 2024-11-11T20:01:35.232Z
+> Last Updated: 2024-11-11T20:03:29.300Z
 > This document is automatically synchronized with MongoDB. Manual edits will be overwritten.
 
 ## Quick Stats
 🔄 Auto-generated from database
-- 🐛 Active Bugs: 15
+- 🐛 Active Bugs: 14
 - ✨ Active Features: 1
 - ✅ Recently Completed: 1
 
@@ -131,18 +131,6 @@
 **Steps to Reproduce**:
 1. Look at it
 
-#### [BUG-1731273892698] Input Text Color Too Light
-**Status**: 🔴 Open
-**Type**: 🐛 Bug
-**Priority**: Medium
-**Reported By**: Development Team
-**Created**: 11/11/2024, 1:24:52 AM
-**Steps to Reproduce**:
-1. Open the application
-2. Focus on the What's on your mind? input box
-3. Type some text
-4. Observe the text color is too light grey
-
 
 ### Open Feature Requests
 
@@ -152,6 +140,21 @@
 **Priority**: Medium
 **Reported By**: User
 **Created**: 11/11/2024, 1:34:44 PM
+
+
+### In Progress
+
+#### [BUG-1731273892698] Input Text Color Too Light
+**Status**: 🟡 In Progress
+**Type**: 🐛 Bug
+**Priority**: Medium
+**Reported By**: Development Team
+**Created**: 11/11/2024, 1:24:52 AM
+**Steps to Reproduce**:
+1. Open the application
+2. Focus on the What's on your mind? input box
+3. Type some text
+4. Observe the text color is too light grey
 
 
 ### Recently Completed
