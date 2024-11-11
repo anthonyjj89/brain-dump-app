@@ -23,23 +23,30 @@ export default function BugTab({
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'createdAt' | 'priority'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [isLoading, setIsLoading] = useState(false);
 
   async function fetchReports() {
     try {
-      const response = await fetch('/api/sync/bugs');
+      setIsLoading(true);
+      setReports([]); // Clear reports while loading
+      console.log(`Fetching ${reportType} reports...`);
+      const response = await fetch(`/api/sync/bugs?type=${reportType}`);
       if (!response.ok) {
         throw new Error('Failed to fetch reports');
       }
       const data = await response.json();
+      console.log(`Received ${data.data?.length || 0} ${reportType} reports`);
       setReports(data.data || []);
     } catch (err) {
       console.error('Error fetching reports:', err);
+    } finally {
+      setIsLoading(false);
     }
   }
 
   useEffect(() => {
     fetchReports();
-  }, []);
+  }, [reportType]); // Re-fetch when report type changes
 
   const sortedReports = [...reports].sort((a, b) => {
     if (sortBy === 'createdAt') {
@@ -53,8 +60,6 @@ export default function BugTab({
         : priorityOrder[b.priority] - priorityOrder[a.priority];
     }
   });
-
-  const filteredReports = sortedReports.filter((report) => report.type === reportType);
 
   return (
     <div className="space-y-6">
@@ -75,22 +80,6 @@ export default function BugTab({
             }`}
           >
             Features
-          </button>
-        </div>
-        <div>
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'createdAt' | 'priority')}
-            className="mr-2 p-2 border rounded"
-          >
-            <option value="createdAt">Date</option>
-            <option value="priority">Priority</option>
-          </select>
-          <button
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            className="p-2 bg-gray-200 rounded"
-          >
-            {sortOrder === 'asc' ? '↑' : '↓'}
           </button>
         </div>
       </div>
@@ -122,61 +111,87 @@ export default function BugTab({
       )}
 
       <div>
-        <h3 className="text-lg font-medium mb-4">Recent {reportType === 'bug' ? 'Bug' : 'Feature'} Reports</h3>
-        <div className="space-y-4">
-          {filteredReports.map((report) => (
-            <div key={report.id} className="bg-white border rounded-lg p-4 relative">
-              {report.screenshot && (
-                <div 
-                  className="absolute top-2 right-2 cursor-pointer"
-                  onClick={() => setSelectedScreenshot(report.screenshot?.path || null)}
-                >
-                  <img 
-                    src={report.screenshot.path}
-                    alt="Screenshot thumbnail" 
-                    className="w-16 h-16 object-cover rounded"
-                  />
-                </div>
-              )}
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h4 className="font-medium">{report.title}</h4>
-                  <p className="text-sm text-gray-500">
-                    Reported by {report.reportedBy} on {new Date(report.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="flex space-x-2">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    report.status === 'Open'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-green-100 text-green-800'
-                  }`}>
-                    {report.status}
-                  </span>
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    report.priority === 'High'
-                      ? 'bg-red-100 text-red-800'
-                      : report.priority === 'Medium'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-green-100 text-green-800'
-                  }`}>
-                    {report.priority}
-                  </span>
-                </div>
-              </div>
-              {report.steps && report.steps.length > 0 && (
-                <div className="mt-2 text-sm text-gray-600">
-                  <p className="font-medium">Steps to Reproduce:</p>
-                  <ol className="list-decimal list-inside">
-                    {report.steps.map((step, index) => (
-                      <li key={index}>{step}</li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-            </div>
-          ))}
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium">All {reportType === 'bug' ? 'Bug' : 'Feature'} Reports ({sortedReports.length})</h3>
+          <div className="flex items-center space-x-2">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'createdAt' | 'priority')}
+              className="p-2 border rounded"
+            >
+              <option value="createdAt">Sort by Date</option>
+              <option value="priority">Sort by Priority</option>
+            </select>
+            <button
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="p-2 bg-gray-200 rounded hover:bg-gray-300"
+              title={sortOrder === 'asc' ? 'Sort Ascending' : 'Sort Descending'}
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </button>
+          </div>
         </div>
+
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {sortedReports.map((report) => (
+              <div key={report.id} className="bg-white border rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-grow pr-20"> {/* Add padding-right to make space for screenshot */}
+                    <h4 className="font-medium">{report.title}</h4>
+                    <p className="text-sm text-gray-500">
+                      Reported by {report.reportedBy} on {new Date(report.createdAt).toLocaleDateString()}
+                    </p>
+                    <div className="flex space-x-2 mt-2">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        report.status === 'Open'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {report.status}
+                      </span>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        report.priority === 'High'
+                          ? 'bg-red-100 text-red-800'
+                          : report.priority === 'Medium'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {report.priority}
+                      </span>
+                    </div>
+                  </div>
+                  {report.screenshot && (
+                    <div 
+                      className="cursor-pointer ml-4"
+                      onClick={() => setSelectedScreenshot(report.screenshot?.path || null)}
+                    >
+                      <img 
+                        src={report.screenshot.path}
+                        alt="Screenshot thumbnail" 
+                        className="w-16 h-16 object-cover rounded"
+                      />
+                    </div>
+                  )}
+                </div>
+                {report.steps && report.steps.length > 0 && (
+                  <div className="mt-4 text-sm text-gray-600">
+                    <p className="font-medium">Steps to Reproduce:</p>
+                    <ol className="list-decimal list-inside">
+                      {report.steps.map((step, index) => (
+                        <li key={index}>{step}</li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

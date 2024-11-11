@@ -6,7 +6,7 @@ import BugTab from './AdminPanel/BugTab';
 
 const AdminPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'status' | 'bugs'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'feedback'>('status');
   const [reportType, setReportType] = useState<'bug' | 'feature'>('bug');
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -86,14 +86,14 @@ const AdminPanel: React.FC = () => {
             System Status
           </button>
           <button
-            onClick={() => setActiveTab('bugs')}
+            onClick={() => setActiveTab('feedback')}
             className={`px-4 py-2 ${
-              activeTab === 'bugs'
+              activeTab === 'feedback'
                 ? 'border-b-2 border-blue-500 text-blue-600'
                 : 'text-gray-500'
             }`}
           >
-            Bug Reports
+            Feedback
           </button>
         </div>
       </div>
@@ -105,6 +105,7 @@ const AdminPanel: React.FC = () => {
           onReportSubmit={handleReportSubmit}
           reportType={reportType}
           setReportType={setReportType}
+          onHidePanel={() => setIsOpen(false)}
         />
       )}
     </div>

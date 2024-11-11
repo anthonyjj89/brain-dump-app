@@ -1,11 +1,16 @@
 # Bug and Feature Tracker
 
-> Last Updated: 2024-11-11T08:57:17.131Z
+> Last Updated: 2024-11-11T09:39:37.458Z
 
-## Open Bugs
+## Open Reports
 
-
-## Open Feature Requests
+### [BUG-M3CTUIR3-JCK] Add microphone icon for voice section inpu
+- **Type**: feature
+- **Status**: Open
+- **Priority**: Medium
+- **Reported By**: User
+- **Created**: 2024-11-11T09:34:44.079Z
+- **Updated**: 2024-11-11T09:34:44.079Z
 
 
 ## Closed Reports

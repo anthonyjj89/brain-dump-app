@@ -20,6 +20,26 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
   const [isCapturingScreenshot, setIsCapturingScreenshot] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const validateForm = (): boolean => {
+    if (!title.trim()) {
+      setErrorMessage('Title is required.');
+      return false;
+    }
+    if (!description.trim()) {
+      setErrorMessage('Description is required.');
+      return false;
+    }
+    if (reportType === 'bug' && (steps.length === 0 || steps.some(step => step.trim() === ''))) {
+      setErrorMessage('Please provide at least one valid step.');
+      return false;
+    }
+    if (!priority) {
+      setErrorMessage('Priority is required.');
+      return false;
+    }
+    return true;
+  };
+
   const handleScreenshot = async () => {
     try {
       setIsCapturingScreenshot(true);
@@ -88,9 +108,15 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
     setErrorMessage(null);
 
     try {
+      // Client-side validation
+      if (!validateForm()) {
+        setIsSubmitting(false);
+        return;
+      }
+
       const reportData = {
-        title,
-        description,
+        title: title.trim(),
+        description: description.trim(),
         steps: steps.filter(step => step.trim() !== ''),
         priority,
         type: reportType,
@@ -101,6 +127,8 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
         } : undefined
       };
 
+      console.log('Submitting report data:', reportData);
+
       const response = await fetch('/api/sync/bugs', {
         method: 'POST',
         headers: {
@@ -109,9 +137,11 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
         body: JSON.stringify(reportData),
       });
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to submit report');
+        console.error('Server response:', responseData);
+        throw new Error(responseData.message || 'Failed to submit report');
       }
 
       setTitle('');
