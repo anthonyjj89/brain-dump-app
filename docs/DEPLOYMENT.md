@@ -1,28 +1,39 @@
 # Deployment Guide
 
-This document outlines the deployment process for the Brain Dump App to Heroku.
-
 ## Prerequisites
 
 - Heroku CLI installed
 - Node.js 18.x
 - Git
+- MongoDB Atlas account
 
 ## Environment Variables
 
 The following environment variables need to be set in your Heroku application:
 
 ```bash
-MONGODB_URI=your_mongodb_connection_string
+# Required
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>
 NODE_ENV=production
+
+# Optional (add as needed)
+# Add any other environment variables here
 ```
 
-To set these variables:
+### Setting Environment Variables
 
-```bash
-heroku config:set MONGODB_URI=your_mongodb_uri --remote <remote-name>
-heroku config:set NODE_ENV=production --remote <remote-name>
-```
+1. **Local Development**
+   - Copy `.env.example` to `.env.local`
+   - Fill in the values in `.env.local`
+
+2. **Heroku Environment**
+   ```bash
+   # Set MongoDB URI
+   heroku config:set MONGODB_URI=your_mongodb_uri --remote <remote-name>
+   
+   # Set Node environment
+   heroku config:set NODE_ENV=production --remote <remote-name>
+   ```
 
 ## Deployment Pipeline
 
@@ -54,10 +65,23 @@ The application uses the following build configuration:
 
 2. **Production Dependencies**: Only production dependencies are installed during deployment:
    ```json
-   "heroku-postbuild": "npm install --production && npm run build"
+   "heroku-postbuild": "npm ci --omit=dev && npm run build"
    ```
 
-3. **Development Tools**: Development tools (husky, eslint, etc.) are properly configured as devDependencies and are excluded from production builds.
+3. **Development Tools**: Development tools (husky, etc.) are properly configured as devDependencies and are excluded from production builds.
+
+## MongoDB Setup
+
+1. **Create MongoDB Atlas Cluster**
+   - Sign up for MongoDB Atlas
+   - Create a new cluster
+   - Configure network access (IP whitelist)
+   - Create database user
+   - Get connection string
+
+2. **Configure Connection**
+   - Use connection string in environment variables
+   - Format: `mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<database>`
 
 ## Troubleshooting
 
