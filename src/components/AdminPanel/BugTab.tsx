@@ -30,7 +30,17 @@ export default function BugTab({
       setIsLoading(true);
       setReports([]); // Clear reports while loading
       console.log(`Fetching ${reportType} reports...`);
-      const response = await fetch(`/api/sync/bugs?type=${reportType}`);
+
+      // Skip auth in development
+      const headers: HeadersInit = {};
+      if (process.env.NODE_ENV !== 'development') {
+        headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_SYNC_TOKEN}`;
+      }
+
+      const response = await fetch(`/api/sync/bugs?type=${reportType}`, {
+        headers
+      });
+
       if (!response.ok) {
         throw new Error('Failed to fetch reports');
       }

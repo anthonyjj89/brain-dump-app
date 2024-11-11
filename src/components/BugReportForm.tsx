@@ -42,9 +42,15 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
 
   const triggerSync = async () => {
     try {
+      // Skip auth in development
+      const headers: HeadersInit = {};
+      if (process.env.NODE_ENV !== 'development') {
+        headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_SYNC_TOKEN}`;
+      }
+
       // Trigger sync for both bugs and features
-      await fetch('/api/sync/bugs?type=bug');
-      await fetch('/api/sync/bugs?type=feature');
+      await fetch('/api/sync/bugs?type=bug', { headers });
+      await fetch('/api/sync/bugs?type=feature', { headers });
     } catch (error) {
       console.error('Error triggering sync:', error);
     }
