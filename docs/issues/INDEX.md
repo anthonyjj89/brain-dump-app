@@ -3,13 +3,22 @@
 ## Active Issues
 
 ### 1. MongoDB Import Paths Issue
-- **Status**: Active/Blocking
+- **Status**: Resolved
 - **Priority**: High
 - **Report**: [MongoDB Import Paths Report](./mongodb-import-paths/REPORT.md)
 - **Impact**: Blocking Heroku deployment
 - **Created**: November 11, 2024
 - **Last Updated**: November 11, 2024
 - **Tags**: #deployment #mongodb #build-failure
+
+### 2. Deployment Configuration
+- **Status**: Pending Review
+- **Priority**: High
+- **Report**: [Deployment Configuration Report](./deployment-config/REPORT.md)
+- **Impact**: Production deployment readiness
+- **Created**: November 11, 2024
+- **Last Updated**: November 11, 2024
+- **Tags**: #deployment #configuration #mongodb #heroku
 
 ## Issue Categories
 - Deployment Issues
