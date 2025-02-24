@@ -10,41 +10,56 @@ interface AudioVisualizerProps {
 
 function AudioVisualizer({ state, volume }: AudioVisualizerProps) {
   return (
-    <div className="relative w-32 h-32">
-      {/* Base circle */}
+    <div className="relative w-32 h-32 flex items-center justify-center">
+      {/* Background gradient with glow */}
       <div className={`
         absolute inset-0 rounded-full
-        ${state === 'recording' ? 'bg-red-500' : state === 'processing' ? 'bg-yellow-500' : 'bg-blue-500'}
-        transition-all duration-200
-      `} />
-
-      {/* Pulsing circle */}
-      <div className={`
-        absolute inset-0 rounded-full
-        ${state === 'recording' ? 'bg-red-500' : state === 'processing' ? 'bg-yellow-500' : 'bg-blue-500'}
-        transform transition-all duration-200
-        ${state === 'recording'
-          ? 'animate-none scale-100'
+        ${state === 'recording' 
+          ? 'bg-gradient-to-r from-red-500 to-pink-600 shadow-[0_0_30px_rgba(239,68,68,0.5)]'
           : state === 'processing'
-          ? 'animate-spin'
-          : 'animate-breathe'
+          ? 'bg-gradient-to-r from-yellow-500 to-orange-600 shadow-[0_0_30px_rgba(234,179,8,0.5)]'
+          : 'bg-gradient-to-r from-blue-500 to-purple-600 shadow-[0_0_30px_rgba(59,130,246,0.5)]'
         }
+        transition-all duration-500 ease-in-out
+        ${state === 'recording' ? 'scale-110' : 'scale-100'}
       `} />
 
-      {/* Volume indicator */}
+      {/* Animated rings */}
       {state === 'recording' && (
-        <div
-          className="absolute inset-0 rounded-full border-4 border-white transform transition-all duration-100"
-          style={{
-            transform: `scale(${1 + Math.min(volume * 1.5, 1)})`,
-            opacity: 0.5
-          }}
-        />
+        <>
+          <div className="absolute inset-0 rounded-full border-4 border-white/30 animate-ping" />
+          <div
+            className="absolute inset-0 rounded-full border-2 border-white/20 transition-all duration-200"
+            style={{
+              transform: `scale(${1 + Math.min(volume * 1.2, 1.2)})`,
+            }}
+          />
+          <div
+            className="absolute inset-0 rounded-full border-2 border-white/10 transition-all duration-200"
+            style={{
+              transform: `scale(${1 + Math.min(volume * 1.5, 1.5)})`,
+            }}
+          />
+        </>
       )}
 
-      {/* Icon */}
-      <div className="absolute inset-0 flex items-center justify-center text-2xl text-white">
-        {state === 'recording' ? '🎙️' : state === 'processing' ? '⏳' : '🎤'}
+      {/* Icon with animation */}
+      <div className="relative z-10 text-2xl text-white transition-transform duration-200">
+        {state === 'recording' ? (
+          <div className="animate-pulse">
+            <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+              <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+          </div>
+        ) : state === 'processing' ? (
+          <div className="w-10 h-10 border-4 border-t-transparent border-white rounded-full animate-spin" />
+        ) : (
+          <svg className="w-10 h-10 hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+          </svg>
+        )}
       </div>
     </div>
   );
@@ -56,7 +71,10 @@ export default function ThoughtForm() {
   const [content, setContent] = useState('');
   const [volume, setVolume] = useState(0);
   const [transcribedText, setTranscribedText] = useState('');
+  const [segments, setSegments] = useState<string[]>([]);
   const [foundItems, setFoundItems] = useState<Array<{ type: 'task' | 'event' | 'note'; text: string }>>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
@@ -103,63 +121,104 @@ export default function ThoughtForm() {
       // Start volume monitoring
       updateVolume();
 
-      // Set up media recorder
-      mediaRecorder.current = new MediaRecorder(stream);
+      // Set up media recorder with timeslice for streaming
+      mediaRecorder.current = new MediaRecorder(stream, {
+        mimeType: 'audio/webm',
+      });
       audioChunks.current = [];
 
+      // Handle data chunks during recording
       mediaRecorder.current.ondataavailable = (event) => {
-        audioChunks.current.push(event.data);
+        if (event.data.size > 0) {
+          audioChunks.current.push(event.data);
+        } else {
+          console.warn('Empty audio chunk received');
+        }
       };
 
       mediaRecorder.current.onstop = async () => {
         setRecordingState('processing');
+        setError(null);
         const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
         
-        // Create form data
+        // Check audio blob size
+        if (audioBlob.size === 0) {
+          setError('No audio recorded. Please try again.');
+          setRecordingState('idle');
+          return;
+        }
+
+        console.log('Audio blob size:', audioBlob.size);
+        setIsTranscribing(true);
+        
+        // Send final audio for complete processing
         const formData = new FormData();
         formData.append('audio', audioBlob);
-        formData.append('type', 'voice');
+        formData.append('type', 'complete');
         
         try {
-          const response = await fetch('/api/thoughts', {
+          const response = await fetch('/api/thoughts/stream', {
             method: 'POST',
             body: formData
           });
-          
+
           if (!response.ok) throw new Error('Failed to save thought');
-          
-          const data = await response.json();
-          
-            // Show transcribed text immediately
-            if (data.data) {
-              const { transcribedText: text, items } = data.data;
-              
-              // Set transcribed text first
-              setTranscribedText(text);
 
-              // Then set found items after a short delay
-              setTimeout(() => {
-                setFoundItems(items.map((item: any) => ({
-                  type: item.thoughtType,
-                  text: item.content
-                })));
-              }, 500);
+          const reader = response.body!.getReader();
+          const decoder = new TextDecoder();
 
-              // Reset recording state but keep display
-              window.dispatchEvent(new Event('thought-created'));
-              setRecordingState('idle');
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+
+            for (const line of lines) {
+              try {
+                const data = JSON.parse(line.slice(6)); // Remove 'data: ' prefix
+
+                switch (data.type) {
+                  case 'transcription':
+                    setTranscribedText(data.text);
+                    setIsTranscribing(false);
+                    break;
+                  case 'segments':
+                    setSegments(data.segments);
+                    break;
+                  case 'complete':
+                    setFoundItems(data.thoughts);
+                    setRecordingState('idle');
+                    setIsTranscribing(false);
+                    window.dispatchEvent(new Event('thought-created'));
+                    break;
+                  case 'error':
+                    setError(data.message);
+                    setRecordingState('idle');
+                    setIsTranscribing(false);
+                    break;
+                }
+              } catch (error) {
+                console.error('Error parsing chunk:', error);
+              }
             }
-          
-          // Clear form
+          }
+
+          // Clear form and reset states
           setContent('');
+          setSegments([]);
+          setError(null);
           audioChunks.current = [];
         } catch (error) {
           console.error('Error saving thought:', error);
+          setError(error instanceof Error ? error.message : 'Failed to process audio');
           setRecordingState('idle');
+          setIsTranscribing(false);
         }
       };
 
-      mediaRecorder.current.start();
+      // Start recording with smaller chunks for more frequent updates
+      mediaRecorder.current.start(500);
       setRecordingState('recording');
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -218,14 +277,38 @@ export default function ThoughtForm() {
           <AudioVisualizer state={recordingState} volume={volume} />
         </button>
 
-        {/* Processing Status - Show immediately when text is ready */}
-        <div className="w-full max-w-full overflow-hidden">
-          {transcribedText && (
-            <ProcessingStatus
-              transcribedText={transcribedText}
-              foundItems={foundItems}
-            />
-          )}
+        {/* Processing Status with animations */}
+        <div className="w-full max-w-full overflow-hidden mt-8">
+          {error ? (
+            <div className="bg-red-500/10 backdrop-blur rounded-xl p-6 border border-red-500/50 animate-fade-up">
+              <div className="text-sm font-medium text-red-400 mb-2">Error:</div>
+              <div className="text-red-300">{error}</div>
+            </div>
+          ) : isTranscribing && !transcribedText ? (
+            <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700/50 animate-fade-up">
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 border-2 border-t-transparent border-blue-500 rounded-full animate-spin" />
+                <div className="text-slate-400">Transcribing audio...</div>
+              </div>
+            </div>
+          ) : transcribedText ? (
+            <div className="space-y-6 animate-fade-up">
+              {/* Voice Input Display */}
+              <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700/50">
+                <div className="text-sm font-medium text-slate-400 mb-2">Voice Input:</div>
+                <div className="text-gray-300 font-mono pl-4 py-2 bg-slate-800/30 rounded-lg border-l-2 border-blue-500/50 animate-type-in">
+                  "{transcribedText}"
+                </div>
+              </div>
+              
+              {/* Processing Status */}
+              <ProcessingStatus
+                transcribedText={transcribedText}
+                segments={segments}
+                foundItems={foundItems}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
 

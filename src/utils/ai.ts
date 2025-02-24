@@ -1,3 +1,14 @@
+// Transcription response type
+interface TranscriptionResponse {
+  text: string;
+  segments?: Array<{
+    text: string;
+    start: number;
+    end: number;
+  }>;
+}
+
+// Main AI response type
 interface AIResponse {
   thoughtType: 'task' | 'event' | 'note' | 'uncertain';
   confidence: 'high' | 'low';
@@ -70,7 +81,50 @@ function calculateCost(tokenUsage: TokenUsage, modelId?: string): number {
   return (tokenUsage.total_tokens / 1000) * modelCost;
 }
 
+export async function transcribeAudio(audio: Blob): Promise<string> {
+  try {
+    // Create FormData and append audio file
+    const formData = new FormData();
+    formData.append('file', audio, 'audio.webm');
+    formData.append('model', 'whisper-1');
+    formData.append('response_format', 'text');
+
+    // Call Whisper API
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Whisper API error:', error);
+      throw new Error('Failed to transcribe audio');
+    }
+
+    const transcription = await response.text();
+    console.log('Transcription result:', transcription);
+
+    if (!transcription || transcription.trim() === '') {
+      throw new Error('Empty transcription result');
+    }
+
+    return transcription;
+  } catch (error) {
+    console.error('Transcription error:', error);
+    throw error;
+  }
+}
+
 export async function categorizeThought(content: string, modelId?: string): Promise<AIResult> {
+  // Don't process empty or placeholder content
+  if (!content || content === "Transcribed text will appear here" || content.trim() === '') {
+    console.warn('Empty or placeholder content, skipping categorization');
+    return createDefaultThought('Empty or invalid content');
+  }
+
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       console.log(`Attempt ${attempt} to categorize:`, content.substring(0, 100));
@@ -170,20 +224,32 @@ export async function categorizeThought(content: string, modelId?: string): Prom
       const result = JSON.parse(responseText);
       let aiResponse;
       
+      // Try to parse as JSON first
       try {
         aiResponse = JSON.parse(result.choices[0].message.content);
         console.log('AI response parsed:', aiResponse);
       } catch (parseError) {
-        console.error('Failed to parse AI response:', {
-          content: result.choices[0].message.content,
-          error: parseError
-        });
-        if (attempt < 3) {
-          console.log('Retrying due to parse error...');
-          await new Promise(r => setTimeout(r, 1000 * attempt));
-          continue;
+        // If parsing fails, try to extract the type from the plain text
+        const text = result.choices[0].message.content.toLowerCase();
+        let thoughtType: 'task' | 'event' | 'note' | 'uncertain' = 'uncertain';
+        
+        if (text.includes('task') || text.includes('todo') || text.includes('action')) {
+          thoughtType = 'task';
+        } else if (text.includes('event') || text.includes('meeting') || text.includes('appointment')) {
+          thoughtType = 'event';
+        } else if (text.includes('note') || text.includes('information')) {
+          thoughtType = 'note';
         }
-        return createDefaultThought(content);
+
+        aiResponse = {
+          thoughtType,
+          confidence: 'low',
+          processedContent: {
+            title: content.split('\n')[0] || 'Untitled',
+            details: content
+          }
+        };
+        console.log('Created structured response from plain text:', aiResponse);
       }
 
       // Validate response format
