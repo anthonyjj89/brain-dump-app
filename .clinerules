@@ -1,0 +1,171 @@
+# Brain Dump App - Project Rules
+
+## Code Organization
+
+### Directory Structure
+- All source code in `src/`
+- Components in `src/components/`
+- API routes in `src/app/api/`
+- Utilities in `src/utils/`
+- Services in `src/services/`
+- Tests in `__tests__` directories
+- Documentation in `memory-bank/`
+
+### File Naming
+- React components: PascalCase (e.g., `ProcessingStatus.tsx`)
+- Utilities: camelCase (e.g., `text.ts`)
+- Test files: `*.test.ts` or `*.test.tsx`
+- API routes: `route.ts`
+- Documentation: kebab-case (e.g., `project-brief.md`)
+
+## Code Style
+
+### TypeScript
+- Use strict mode
+- Explicit return types on functions
+- Interface over type where possible
+- Generics for reusable code
+- No `any` types
+
+### React
+- Functional components
+- Custom hooks for logic
+- Props interfaces with documentation
+- Error boundaries for error handling
+- Memoization for expensive operations
+
+### CSS
+- TailwindCSS classes
+- Custom classes in globals.css
+- Mobile-first responsive design
+- Dark mode support
+
+## Architecture
+
+### Services
+- Modular design
+- Dependency injection
+- Interface-based design
+- Error handling
+- Logging/monitoring
+
+### API Routes
+- Input validation
+- Error handling
+- Rate limiting
+- Authentication (future)
+- Response typing
+
+## Testing
+
+### Unit Tests
+- Jest for testing
+- React Testing Library for components
+- Mock external services
+- Test edge cases
+- > 90% coverage
+
+### Integration Tests
+- Test complete flows
+- Mock API responses
+- Test error scenarios
+- Performance testing
+
+## Documentation
+
+### Code Documentation
+- JSDoc for functions
+- Component documentation
+- API documentation
+- Type documentation
+- Example usage
+
+### Memory Bank
+- Project brief
+- Product context
+- Active context
+- System patterns
+- Technical context
+- Progress tracking
+
+## Error Handling
+
+### Types
+- ValidationError
+- ProcessingError
+- APIError
+- NetworkError
+- DatabaseError
+
+### Patterns
+- Try/catch blocks
+- Error boundaries
+- Error logging
+- User feedback
+- Recovery strategies
+
+## Performance
+
+### Metrics
+- Processing time < 2s
+- UI response < 100ms
+- API latency < 500ms
+- Memory usage < 200MB
+
+### Optimization
+- Code splitting
+- Lazy loading
+- Caching
+- Memoization
+- Resource cleanup
+
+## Security
+
+### API Security
+- Input validation
+- Rate limiting
+- API key rotation
+- Error message sanitization
+- CORS configuration
+
+### Data Security
+- Data validation
+- XSS prevention
+- CSRF protection
+- Secure headers
+- Content security policy
+
+## Development Process
+
+### Version Control
+- Feature branches
+- Descriptive commits
+- PR reviews
+- Version tagging
+- Changelog updates
+
+### Deployment
+- Environment configuration
+- Build process
+- Testing pipeline
+- Monitoring setup
+- Rollback plan
+
+## Monitoring
+
+### Metrics
+- Performance metrics
+- Error rates
+- API usage
+- Cost tracking
+- User metrics
+
+### Alerts
+- Error thresholds
+- Performance degradation
+- Cost alerts
+- Security alerts
+- System health
+
+## Revision History
+- 2024-02-24: Initial rules created

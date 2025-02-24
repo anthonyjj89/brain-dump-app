@@ -4,8 +4,9 @@ import {
   splitIntoThoughts, 
   hasStrongEventIndicators, 
   hasStrongTaskIndicators,
-  extractTime,
-  extractDate
+  formatTime,
+  extractDate,
+  extractMeetings
 } from '@/utils/text';
 import { getCollection } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
@@ -75,43 +76,85 @@ export async function POST(request: Request) {
             const thoughts = await Promise.all(
               segments.map(async segment => {
                 try {
-                  // First check for strong indicators
-                  let thoughtType: 'task' | 'event' | 'note';
-                  let confidence: 'high' | 'low' = 'high';
-                  let processedContent: any = {};
+                  // First check for meetings
+                  const meetings = extractMeetings(segment);
+                  if (meetings.length > 0) {
+                    return Promise.all(meetings.map(async meeting => {
+                      const thought = {
+                        content: segment,
+                        inputType: 'voice',
+                        rawAudio: true,
+                        thoughtType: 'event',
+                        confidence: 'high',
+                        processedContent: {
+                          title: `Meeting${meeting.person ? ` with ${meeting.person}` : ''}`,
+                          time: meeting.time ? formatTime(meeting.time) : undefined,
+                          date: meeting.date,
+                          person: meeting.person || '-'
+                        },
+                        status: 'pending',
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                        syncStatus: {},
+                        metadata: {
+                          source: 'voice',
+                          batchId,
+                          categorization: 'rule-based'
+                        }
+                      };
 
-                  if (hasStrongEventIndicators(segment)) {
-                    thoughtType = 'event';
-                    const timeMatch = extractTime(segment);
-                    const dateMatch = extractDate(segment);
-                    processedContent = {
-                      title: segment,
-                      time: timeMatch,
-                      date: dateMatch
-                    };
-                  } else if (hasStrongTaskIndicators(segment)) {
-                    thoughtType = 'task';
-                    processedContent = {
-                      title: segment,
-                      priority: segment.match(/\b(?:urgent|asap|important)\b/i) ? 'high' : 'medium'
-                    };
-                  } else {
-                    // Use AI for uncertain cases
-                    const result = await categorizeThought(segment);
-                    // Handle uncertain type by defaulting to note
-                    thoughtType = result.thoughtType === 'uncertain' ? 'note' : result.thoughtType;
-                    confidence = result.confidence;
-                    processedContent = result.processedContent;
+                      const savedThought = await thoughtsCollection.insertOne(thought);
+                      return {
+                        id: savedThought.insertedId,
+                        type: 'event',
+                        text: segment,
+                        metadata: thought.processedContent
+                      };
+                    }));
                   }
 
-                  // Create thought document
+                  // If not a meeting, check for task indicators
+                  if (hasStrongTaskIndicators(segment)) {
+                    const thought = {
+                      content: segment,
+                      inputType: 'voice',
+                      rawAudio: true,
+                      thoughtType: 'task',
+                      confidence: 'high',
+                      processedContent: {
+                        title: segment,
+                        priority: segment.match(/\b(?:urgent|asap|important)\b/i) ? 'high' : 'medium'
+                      },
+                      status: 'pending',
+                      createdAt: new Date(),
+                      updatedAt: new Date(),
+                      syncStatus: {},
+                      metadata: {
+                        source: 'voice',
+                        batchId,
+                        categorization: 'rule-based'
+                      }
+                    };
+
+                    const savedThought = await thoughtsCollection.insertOne(thought);
+                    return [{
+                      id: savedThought.insertedId,
+                      type: 'task',
+                      text: segment,
+                      metadata: thought.processedContent
+                    }];
+                  }
+
+                  // Use AI for uncertain cases
+                  const result = await categorizeThought(segment);
+                  const thoughtType = result.thoughtType === 'uncertain' ? 'note' : result.thoughtType;
                   const thought = {
                     content: segment,
                     inputType: 'voice',
                     rawAudio: true,
                     thoughtType,
-                    confidence,
-                    processedContent,
+                    confidence: result.confidence,
+                    processedContent: result.processedContent,
                     status: 'pending',
                     createdAt: new Date(),
                     updatedAt: new Date(),
@@ -119,19 +162,17 @@ export async function POST(request: Request) {
                     metadata: {
                       source: 'voice',
                       batchId,
-                      categorization: confidence === 'high' ? 'rule-based' : 'ai'
+                      categorization: 'ai'
                     }
                   };
 
-                  // Save to MongoDB
                   const savedThought = await thoughtsCollection.insertOne(thought);
-
-                  return {
+                  return [{
                     id: savedThought.insertedId,
                     type: thoughtType,
                     text: segment,
-                    metadata: processedContent
-                  };
+                    metadata: result.processedContent
+                  }];
                 } catch (error) {
                   console.error('Error processing segment:', error);
                   // Create fallback thought
@@ -156,10 +197,8 @@ export async function POST(request: Request) {
                     }
                   };
 
-                  // Save to MongoDB
                   const savedThought = await thoughtsCollection.insertOne(thought);
-
-                  return {
+                  return [{
                     id: savedThought.insertedId,
                     type: 'note',
                     text: segment,
@@ -167,12 +206,15 @@ export async function POST(request: Request) {
                       title: segment,
                       details: segment
                     }
-                  };
+                  }];
                 }
               })
             );
-            console.log('Thoughts saved:', thoughts);
-            sendEvent('complete', { thoughts });
+
+            // Flatten the array of arrays into a single array of thoughts
+            const flattenedThoughts = thoughts.flat();
+            console.log('Thoughts saved:', flattenedThoughts);
+            sendEvent('complete', { thoughts: flattenedThoughts });
           }
 
           controller.close();

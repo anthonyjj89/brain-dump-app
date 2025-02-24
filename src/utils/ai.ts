@@ -8,8 +8,8 @@ interface TranscriptionResponse {
   }>;
 }
 
-// Main AI response type
-interface AIResponse {
+// Thought type for compound responses
+interface Thought {
   thoughtType: 'task' | 'event' | 'note' | 'uncertain';
   confidence: 'high' | 'low';
   possibleTypes?: Array<'task' | 'event' | 'note'>;
@@ -17,10 +17,14 @@ interface AIResponse {
     title?: string;
     // For tasks
     dueDate?: string;
+    dueTime?: string;
     priority?: string;
     // For events
-    eventDate?: string;
-    eventTime?: string;
+    date?: string;
+    time?: string;
+    startTime?: string;
+    endTime?: string;
+    person?: string;
     location?: string;
     // For notes
     tags?: string[];
@@ -29,6 +33,11 @@ interface AIResponse {
     suggestedDate?: string;
     suggestedAction?: string;
   };
+}
+
+// Main AI response type
+interface AIResponse extends Thought {
+  thoughts?: Thought[]; // For compound inputs with multiple thoughts
 }
 
 interface TokenUsage {
@@ -57,19 +66,29 @@ function createDefaultThought(content: string): AIResult {
   };
 }
 
-function isValidAIResponse(response: any): response is AIResponse {
+function isValidThought(thought: any): thought is Thought {
   return (
-    response &&
-    ['task', 'event', 'note', 'uncertain'].includes(response.thoughtType) &&
-    ['high', 'low'].includes(response.confidence) &&
-    typeof response.processedContent === 'object' &&
-    (!response.possibleTypes || (
-      Array.isArray(response.possibleTypes) &&
-      response.possibleTypes.every((type: any) => 
+    thought &&
+    ['task', 'event', 'note', 'uncertain'].includes(thought.thoughtType) &&
+    ['high', 'low'].includes(thought.confidence) &&
+    typeof thought.processedContent === 'object' &&
+    (!thought.possibleTypes || (
+      Array.isArray(thought.possibleTypes) &&
+      thought.possibleTypes.every((type: any) => 
         ['task', 'event', 'note'].includes(type)
       )
     ))
   );
+}
+
+function isValidAIResponse(response: any): response is AIResponse {
+  // Check if it's a compound response
+  if ('thoughts' in response && Array.isArray(response.thoughts)) {
+    return response.thoughts.every(isValidThought);
+  }
+
+  // If not compound, validate as a single thought
+  return isValidThought(response);
 }
 
 function calculateCost(tokenUsage: TokenUsage, modelId?: string): number {
@@ -142,65 +161,121 @@ export async function categorizeThought(content: string, modelId?: string): Prom
           messages: [
             {
               role: 'system',
-              content: `Analyze this text and categorize STRICTLY as:
-                - task: if it mentions an action to do (e.g., "finish", "complete", "do", "make")
-                  Example: "finish the invoice" -> task with title "Finish invoice"
-                  
-                - event: if it mentions a time/date (e.g., "tomorrow", "at 2pm", "next week")
-                  Example: "meeting at 2pm" -> event with title "Meeting" and time "2:00 PM"
-                  
-                - note: for general information without actions or times
-                  Example: "the project looks good" -> note
+              content: `You are a thought categorization system. Your task is to analyze text and categorize each distinct thought while preserving relationships and context.
 
-                - uncertain: if you're not confident about the type
-                  Example: "team sync next week" -> could be task or event
+CATEGORIZATION RULES:
 
-                If uncertain, include:
-                - confidence: "low"
-                - possibleTypes: array of likely types
-                - suggestedDate: any date/time mentioned
-                - suggestedAction: any action words
+1. Task Indicators:
+- Action verbs: finish, complete, do, make, send, review
+- Obligation words: need to, have to, must, should
+- Project terms: task, project, deadline
+Example: "need to finish the report" -> task
 
-                For tasks, extract:
-                - title (make it concise)
-                - due date (if mentioned)
-                - priority (high if urgent words used)
+2. Event Indicators:
+- Time mentions: at [time], [time] am/pm, o'clock
+- Date references: tomorrow, next week, on Monday
+- Meeting words: meeting, appointment, call, sync
+Example: "meeting at 2pm" -> event
 
-                For events, extract:
-                - title (make it concise)
-                - date (e.g., "tomorrow", "next week")
-                - time (convert to standard format)
-                - location (if mentioned)
+3. Note Indicators:
+- Observations, facts, or information without actions/times
+- Ideas or thoughts without specific timing
+Example: "the project looks promising" -> note
 
-                For notes, extract:
-                - title (from first few words)
-                - tags (key topics)
-                - details (full content)
+TIME FORMAT RULES:
+- Always normalize times to 12-hour format with am/pm
+- Handle variations: "9am", "9:00", "9 a.m.", "9 in the morning"
+- For ambiguous times (e.g. "at 5"), use context to determine am/pm
+- Preserve time zones if mentioned
 
-                Always include confidence level (high/low).
-                Respond in JSON format with thoughtType, confidence, possibleTypes (if uncertain), and processedContent.
-                
-                Examples:
-                "finish the report by tomorrow" -> {
-                  "thoughtType": "task",
-                  "confidence": "high",
-                  "processedContent": {
-                    "title": "Finish report",
-                    "dueDate": "tomorrow",
-                    "priority": "medium"
-                  }
-                }
+COMPOUND THOUGHT HANDLING:
+Input: "I need to drink water and have a meeting at 9 a.m. tomorrow"
+Output: {
+  "thoughts": [
+    {
+      "thoughtType": "task",
+      "confidence": "high",
+      "processedContent": {
+        "title": "Drink water",
+        "priority": "medium"
+      }
+    },
+    {
+      "thoughtType": "event",
+      "confidence": "high",
+      "processedContent": {
+        "title": "Meeting",
+        "time": "9:00 AM",
+        "date": "tomorrow"
+      }
+    }
+  ]
+}
 
-                "team sync next week" -> {
-                  "thoughtType": "uncertain",
-                  "confidence": "low",
-                  "possibleTypes": ["task", "event"],
-                  "processedContent": {
-                    "title": "Team Sync",
-                    "suggestedDate": "next week",
-                    "suggestedAction": "sync"
-                  }
-                }`
+MORE EXAMPLES:
+
+1. Informal Meeting:
+Input: "catch up with John at 3"
+Output: {
+  "thoughtType": "event",
+  "confidence": "high",
+  "processedContent": {
+    "title": "Catch up with John",
+    "time": "3:00 PM",
+    "person": "John"
+  }
+}
+
+2. Task with Deadline:
+Input: "need to finish this by 5pm today"
+Output: {
+  "thoughtType": "task",
+  "confidence": "high",
+  "processedContent": {
+    "title": "Finish this",
+    "dueDate": "today",
+    "dueTime": "5:00 PM",
+    "priority": "high"
+  }
+}
+
+3. Uncertain Case:
+Input: "team sync sometime next week"
+Output: {
+  "thoughtType": "uncertain",
+  "confidence": "low",
+  "possibleTypes": ["event", "task"],
+  "processedContent": {
+    "title": "Team sync",
+    "suggestedDate": "next week",
+    "suggestedAction": "sync"
+  }
+}
+
+4. Multiple Times:
+Input: "meeting from 2pm to 4pm"
+Output: {
+  "thoughtType": "event",
+  "confidence": "high",
+  "processedContent": {
+    "title": "Meeting",
+    "startTime": "2:00 PM",
+    "endTime": "4:00 PM"
+  }
+}
+
+RESPONSE FORMAT:
+Always respond with valid JSON containing:
+- thoughtType: "task" | "event" | "note" | "uncertain"
+- confidence: "high" | "low"
+- possibleTypes?: ["task" | "event" | "note"] (if uncertain)
+- processedContent: object with relevant fields
+- thoughts?: array of multiple thoughts (for compound inputs)
+
+For uncertain cases, include:
+- suggestedDate: any time/date mentioned
+- suggestedAction: any action words found
+- possibleTypes: array of likely categorizations`
             },
             { role: 'user', content }
           ]
