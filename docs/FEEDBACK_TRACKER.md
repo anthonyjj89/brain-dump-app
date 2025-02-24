@@ -1,11 +1,11 @@
 # Project Feedback Tracker
 
-> Last Updated: ${new Date().toISOString()}
+> Last Updated: 2024-11-11T20:03:29.300Z
 > This document is automatically synchronized with MongoDB. Manual edits will be overwritten.
 
 ## Quick Stats
 🔄 Auto-generated from database
-- 🐛 Active Bugs: 2
+- 🐛 Active Bugs: 14
 - ✨ Active Features: 1
 - ✅ Recently Completed: 1
 
@@ -13,118 +13,162 @@
 
 ### Open Bugs
 
-#### [BUG-HP-001] Slow Initial Admin Panel Load
+#### [BUG-M3DF2V20-AZF] after deployment with sync changes
 **Status**: 🔴 Open
 **Type**: 🐛 Bug
 **Priority**: High
-**Reported**: 2024-03-21
-**Description**: Admin panel takes 20-30 seconds to load on first click
-**Impact**: High - Affects all users attempting to access admin functionality
+**Reported By**: User
+**Created**: 11/11/2024, 11:29:05 PM
 **Steps to Reproduce**:
-1. Close admin panel if open
-2. Wait a few minutes
-3. Click "Show Admin Panel" button
-4. Observe loading time
-**Expected Behavior**: Panel should open within 1-2 seconds
-**Actual Behavior**: Panel takes 20-30 seconds to open
-**Technical Details**:
-- Occurs on first connection to MongoDB
-- Subsequent opens are faster
-- No error messages in console
-- Affects all environments
-**Investigation Notes**:
-- May be related to connection pooling
-- Could be DNS resolution delay
-- Possible MongoDB Atlas cold start
-- Need to investigate connection caching
+1. yo
 
-#### [BUG-HP-002] Live Metrics Not Updating
+#### [BUG-M3DEWKBU-EB3] Test bug after the new sync script is in
 **Status**: 🔴 Open
 **Type**: 🐛 Bug
 **Priority**: High
-**Reported**: 2024-03-21
-**Description**: System metrics (ping, data transfer) not updating in real-time
-**Impact**: High - Affects system monitoring accuracy
+**Reported By**: User
+**Created**: 11/11/2024, 11:24:11 PM
 **Steps to Reproduce**:
-1. Open admin panel
-2. Navigate to System Status tab
-3. Observe metrics for 1 minute
-4. Check for updates
-**Expected Behavior**: 
-- Metrics should update every second
-- Should see fluctuations in ping time
-- Should see increasing data transfer
-**Actual Behavior**:
-- Metrics remain static
-- No visual indication of updates
-- Values don't change until refresh
-**Technical Details**:
-- Polling interval set to 1 second
-- No console errors
-- Network requests happening
-- Data not reflecting in UI
-**Investigation Notes**:
-- May be React state update issue
-- Could be polling implementation
-- Possible race condition
-- Need to verify data freshness
+1. sync script
+
+#### [BUG-M3DEO9G0-JFY] Bug after new sync tool added test
+**Status**: 🔴 Open
+**Type**: 🐛 Bug
+**Priority**: High
+**Reported By**: User
+**Created**: 11/11/2024, 11:17:44 PM
+**Steps to Reproduce**:
+1. test it yo
+
+#### [BUG-M3DEEHDE-Z64] Test
+**Status**: 🔴 Open
+**Type**: 🐛 Bug
+**Priority**: Medium
+**Reported By**: User
+**Created**: 11/11/2024, 11:10:07 PM
+**Steps to Reproduce**:
+1. test
+
+#### [BUG-M3CT2FS1-67F] Test Bug
+**Status**: 🔴 Open
+**Type**: 🐛 Bug
+**Priority**: High
+**Reported By**: User
+**Created**: 11/11/2024, 1:12:53 PM
+**Steps to Reproduce**:
+1. Do it
+**Screenshot**: [View](/screenshots/screenshot-1731316372108.png)
+
+#### [BUG-1731277520516] consider further connection infomration for the API connections on teh UI in system sttaus, amount of data transfered. current ping etc updated every 1 sec
+**Status**: 🔴 Open
+**Type**: 🐛 Bug
+**Priority**: High
+**Reported By**: User
+**Created**: 11/11/2024, 2:25:20 AM
+**Steps to Reproduce**:
+1. NA
+
+#### [BUG-1731277455674] Lets add a toggle between bug and feature for this report system. And make sure all documentation is updated as well as the guide we made for our template folder
+**Status**: 🔴 Open
+**Type**: 🐛 Bug
+**Priority**: High
+**Reported By**: User
+**Created**: 11/11/2024, 2:24:15 AM
+**Steps to Reproduce**:
+1. NA
+
+#### [BUG-1731277387489] check bug docs MD has some kind of sync with the mongo DB. Something that runs in the background maybe on app/server start up script
+**Status**: 🔴 Open
+**Type**: 🐛 Bug
+**Priority**: High
+**Reported By**: User
+**Created**: 11/11/2024, 2:23:07 AM
+**Steps to Reproduce**:
+1. NA
+
+#### [BUG-1731277318663] Add sorting function to bug report list on admin panel
+**Status**: 🔴 Open
+**Type**: 🐛 Bug
+**Priority**: Medium
+**Reported By**: User
+**Created**: 11/11/2024, 2:21:58 AM
+**Steps to Reproduce**:
+1. NA
+
+#### [BUG-1731277294595] admin panel can close when clicked outside of it as well as the close X button
+**Status**: 🔴 Open
+**Type**: 🐛 Bug
+**Priority**: High
+**Reported By**: User
+**Created**: 11/11/2024, 2:21:34 AM
+**Steps to Reproduce**:
+1. NA
+
+#### [BUG-1731277260983] bug reports can show a little screenshot thumbnail with click to expand function
+**Status**: 🔴 Open
+**Type**: 🐛 Bug
+**Priority**: Medium
+**Reported By**: User
+**Created**: 11/11/2024, 2:21:00 AM
+**Steps to Reproduce**:
+1. just feedback
+
+#### [BUG-1731275108698] Admin panel is in the way when scren shoting, also it opens up a share thing like youre in a zoom call. lets just make it screen shot the current tab yo
+**Status**: 🔴 Open
+**Type**: 🐛 Bug
+**Priority**: Medium
+**Reported By**: User
+**Created**: 11/11/2024, 1:45:08 AM
+**Steps to Reproduce**:
+1. screen shot you can see admin panel is in teh way 
+
+#### [BUG-1731275058249] admin panel also has grey text on input boxes and a few other areas.
+**Status**: 🔴 Open
+**Type**: 🐛 Bug
+**Priority**: High
+**Reported By**: User
+**Created**: 11/11/2024, 1:44:18 AM
+**Steps to Reproduce**:
+1. Look at it
+
 
 ### Open Feature Requests
 
-#### [FEAT-HP-001] WebSocket Integration
-**Status**: 📋 Planned
-**Priority**: High
-**Requested**: 2024-03-21
-**Target Release**: v0.2.0
-**Description**: Implement WebSocket connection for real-time system metrics
-**Business Value**: Critical for accurate system monitoring
-**Requirements**:
-- [ ] WebSocket server implementation
-  * Set up WebSocket endpoint
-  * Handle client connections
-  * Implement message protocol
-  * Add error handling
-- [ ] Client connection management
-  * Connection establishment
-  * Reconnection logic
-  * Connection status tracking
-  * Error recovery
-- [ ] Real-time data streaming
-  * Metrics broadcasting
-  * Data validation
-  * Rate limiting
-  * Data compression
-- [ ] Error handling
-  * Connection failures
-  * Data validation errors
-  * Timeout handling
-  * Recovery procedures
-**Dependencies**:
-- MongoDB connection optimization
-- System metrics implementation
-- Network infrastructure support
-**Technical Considerations**:
-- WebSocket vs Server-Sent Events
-- Message format optimization
-- Connection pooling integration
-- Performance monitoring
+#### [BUG-M3CTUIR3-JCK] Add microphone icon for voice section inpu
+**Status**: 🔴 Open
+**Type**: ✨ Feature
+**Priority**: Medium
+**Reported By**: User
+**Created**: 11/11/2024, 1:34:44 PM
+
+
+### In Progress
+
+#### [BUG-1731273892698] Input Text Color Too Light
+**Status**: 🟡 In Progress
+**Type**: 🐛 Bug
+**Priority**: Medium
+**Reported By**: Development Team
+**Created**: 11/11/2024, 1:24:52 AM
+**Steps to Reproduce**:
+1. Open the application
+2. Focus on the What's on your mind? input box
+3. Type some text
+4. Observe the text color is too light grey
+
 
 ### Recently Completed
 
-#### [BUG-MP-001] Input Text Color Too Light
-**Status**: 🟢 Fixed
+#### [BUG-M3DFBJ90-NDC] 2nd test after rebuild bug bug
+**Status**: 🟢 Closed
 **Type**: 🐛 Bug
-**Resolution**: Added proper text color classes
-**Details**:
-- Added text-gray-900 for light mode
-- Added dark:text-gray-100 for dark mode
-- Applied to all input elements
-- Added contrast validation
-**Verification**:
-- Tested in light mode
-- Tested in dark mode
-- Verified across browsers
-- Checked accessibility
+**Priority**: High
+**Reported By**: User
+**Created**: 11/11/2024, 11:35:49 PM
+**Steps to Reproduce**:
+1. bug
+**Resolved By**: Anthony
+
 
 ## Guidelines
 
@@ -152,49 +196,61 @@
 - 🚧 Building: Currently in development
 - ✅ Completed: Implemented and deployed
 
-## Database Schema
+## Database Details
 
-### Bug Report Schema
+### Collections
+- `bugs`: Bug reports and tracking
+- `features`: Feature requests and planning
+
+### Schema Overview
 ```typescript
-interface BugReport {
+interface Report {
+  _id: ObjectId;
   id: string;
   title: string;
-  type: 'bug';
-  status: BugStatus;
-  priority: Priority;
   description: string;
-  steps: string[];
-  expected: string;
-  actual: string;
-  impact: string;
-  technical: string;
-  notes: string;
-  reported: Date;
-  updated: Date;
-  resolved?: Date;
+  status: Status;
+  priority: Priority;
+  type: 'bug' | 'feature';
+  reportedBy: string;
+  steps?: string[];
+  createdAt: Date;
+  updatedAt: Date;
   resolvedBy?: string;
+  notes?: string;
+  screenshot?: {
+    path: string;
+    timestamp: Date;
+  };
 }
 ```
 
-### Feature Request Schema
-```typescript
-interface FeatureRequest {
-  id: string;
-  title: string;
-  type: 'feature';
-  status: FeatureStatus;
-  priority: Priority;
-  description: string;
-  requirements: string[];
-  dependencies: string[];
-  technical: string;
-  requested: Date;
-  updated: Date;
-  completed?: Date;
-  implementedBy?: string;
-}
+## Templates
+
+### Bug Report Template
+```markdown
+#### [BUG-XX-###] Title
+**Status**: 🔴 Open/🟡 In Progress/🟢 Fixed
+**Priority**: High/Medium/Low
+**Description**: Clear description of the issue
+**Steps to Reproduce**:
+1. Step 1
+2. Step 2
+**Expected**: What should happen
+**Actual**: What actually happens
+```
+
+### Feature Request Template
+```markdown
+#### [FEAT-XX-###] Title
+**Status**: 📋 Planned/🚧 Building/✅ Completed
+**Priority**: High/Medium/Low
+**Description**: Feature description
+**Requirements**:
+- [ ] Requirement 1
+- [ ] Requirement 2
 ```
 
 ---
 > This file is automatically generated and synchronized with MongoDB.
-> Last sync performed by the feedback tracking system.
+> Last sync performed by local sync script.

@@ -30,7 +30,9 @@ export default function BugTab({
       setIsLoading(true);
       setReports([]); // Clear reports while loading
       console.log(`Fetching ${reportType} reports...`);
+
       const response = await fetch(`/api/sync/bugs?type=${reportType}`);
+
       if (!response.ok) {
         throw new Error('Failed to fetch reports');
       }

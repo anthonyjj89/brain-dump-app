@@ -1,6 +1,14 @@
-# Development Handover - v0.1.1
+# Development Handover - v0.1.3
 
 ## Current State
+
+### Branch Structure
+```
+Repository
+├── main          # Production branch (Heroku deployed)
+├── dev           # Development branch
+└── experimental  # Experimental features
+```
 
 ### Project Structure
 ```
@@ -17,7 +25,7 @@ brain-dump-app/
 │   ├── components/
 │   │   ├── ThoughtForm.tsx
 │   │   ├── ReviewCards.tsx
-│   │   └── AdminPanel.tsx
+│   │   └── AdminPanel/
 │   ├── lib/
 │   │   └── mongodb.ts
 │   └── utils/
@@ -29,6 +37,7 @@ brain-dump-app/
 - MongoDB Atlas connected and operational
 - OpenRouter API configured
 - Development server running on http://localhost:3000
+- Heroku deployment configured
 
 ### Database Status
 - Connected to Brain-Dump-Database
@@ -36,6 +45,7 @@ brain-dump-app/
 - Connection pooling configured
 - Health monitoring active
 - Test endpoints functional
+- Bug tracking system operational
 
 ### Features Implemented
 1. Database Integration
@@ -48,17 +58,41 @@ brain-dump-app/
    - System status monitoring
    - Database connection status
    - Service configuration status
+   - Real-time metrics with React Query
+   - Bug tracking interface
 
 3. Core Features
    - Thought submission form
    - Review card system
    - External service sync preparation
    - AI integration ready
+   - Bug reporting with screenshots
+   - Manual database sync tool
 
 ### Known Issues
 - None critical at the moment
 - External service integrations pending
 - Voice input feature not yet implemented
+
+## Branch Management
+
+### Production (main)
+- Deployed to Heroku
+- Contains stable code
+- All features thoroughly tested
+- Automated deployment via Heroku Git
+
+### Development (dev)
+- Latest development changes
+- Feature integration
+- Testing environment
+- Pre-production staging
+
+### Experimental
+- New feature testing
+- Experimental changes
+- Not deployed
+- Merge to dev if successful
 
 ## Next Steps
 
@@ -89,14 +123,19 @@ brain-dump-app/
 - Check `/api/test-db` for database status
 - Monitor `/api/status` for system health
 - Use Admin Panel for quick status overview
+- Check Heroku logs for deployment issues
+- Use `sync-local.js` for manual database sync
 
 ## Resources
 - MongoDB Atlas Dashboard
 - Project documentation in /docs
 - MongoDB setup guide in templates
 - OpenRouter API documentation
+- Heroku deployment logs
 
 ## Version History
+- v0.1.3: Manual database sync and bug management improvements
+- v0.1.2: Bug reporting and screenshot functionality
 - v0.1.1: MongoDB Integration
 - v0.1.0: Initial Setup
 
@@ -105,3 +144,4 @@ brain-dump-app/
 2. Review database indexes needed
 3. Consider implementing user authentication
 4. Plan voice input feature architecture
+5. Monitor Heroku deployment metrics

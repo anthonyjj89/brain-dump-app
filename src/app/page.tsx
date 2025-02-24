@@ -8,7 +8,7 @@ export default function Home() {
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900">Brain Dump App</h1>
-          <span className="text-sm text-gray-500">v0.1.1</span>
+          <span className="text-sm text-gray-500">v0.1.3</span>
         </div>
         
         {/* Thought Input Section */}

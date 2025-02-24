@@ -150,6 +150,7 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
       setPriority('Medium');
       setScreenshotPath('');
       onSubmitSuccess();
+
     } catch (error) {
       console.error('Error submitting report:', error);
       setErrorMessage(error instanceof Error ? error.message : 'An unknown error occurred');
@@ -243,7 +244,7 @@ export default function BugReportForm({ onSubmitSuccess, reportType, onScreensho
           onChange={(e) => setPriority(e.target.value as 'Low' | 'Medium' | 'High')}
           className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
         >
-          {BUG_PRIORITIES.map((p) => (
+          {BUG_PRIORITIES.map((p: string) => (
             <option key={p} value={p}>{p}</option>
           ))}
         </select>

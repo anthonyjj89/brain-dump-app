@@ -1,5 +1,16 @@
 # Project Structure
 
+## Branch Organization
+
+```
+Repository Branches
+├── main              # Production branch, deployed to Heroku
+├── dev               # Development branch, for feature integration
+└── experimental      # Experimental features and testing
+```
+
+## Project Structure
+
 ```
 Brain Dump App/
 ├── docs/                           # Project documentation
@@ -9,35 +20,48 @@ Brain Dump App/
 │   ├── PROJECT_TREE.md           # This file
 │   └── ...                       # Other documentation
 │
-├── brain-dump-app/                # Main Next.js application
-│   ├── src/
-│   │   ├── app/                  # Next.js App Router
-│   │   │   ├── api/             # API Routes
-│   │   │   │   ├── thoughts/    # Thought submission endpoints
-│   │   │   │   ├── review/      # Review system endpoints
-│   │   │   │   └── sync/        # External service sync endpoints
-│   │   │   └── page.tsx         # Main application page
-│   │   │
-│   │   ├── components/          # React components
-│   │   │   ├── ThoughtForm.tsx  # Thought input form
-│   │   │   └── ReviewCards.tsx  # Review card display
-│   │   │
-│   │   ├── lib/                 # Library code
-│   │   │   └── mongodb.ts       # MongoDB configuration
-│   │   │
-│   │   └── utils/               # Utility functions
-│   │       └── ai.ts            # AI categorization logic
+├── src/                          # Main Next.js application
+│   ├── app/                      # Next.js App Router
+│   │   ├── api/                 # API Routes
+│   │   │   ├── thoughts/        # Thought submission endpoints
+│   │   │   ├── review/         # Review system endpoints
+│   │   │   ├── sync/           # External service sync endpoints
+│   │   │   ├── status/         # System status endpoints
+│   │   │   └── test-db/        # Database test endpoints
+│   │   └── page.tsx            # Main application page
 │   │
-│   ├── public/                  # Static files
-│   │   └── ...
+│   ├── components/              # React components
+│   │   ├── AdminPanel/         # Admin interface components
+│   │   │   ├── StatusTab.tsx   # System status display
+│   │   │   └── BugTab.tsx      # Bug tracking interface
+│   │   ├── ThoughtForm.tsx     # Thought input form
+│   │   └── ReviewCards.tsx     # Review card display
 │   │
-│   ├── .env.local              # Environment variables
-│   ├── package.json            # Project dependencies
-│   ├── tsconfig.json           # TypeScript configuration
-│   └── tailwind.config.js      # Tailwind CSS configuration
+│   ├── lib/                    # Library code
+│   │   ├── mongodb.ts         # MongoDB configuration
+│   │   └── schemas/           # Database schemas
+│   │
+│   ├── utils/                 # Utility functions
+│   │   ├── ai.ts             # AI categorization logic
+│   │   └── screenshot.ts     # Screenshot handling
+│   │
+│   ├── hooks/                # Custom React hooks
+│   │   └── useSystemStatus.ts # System status management
+│   │
+│   └── providers/            # React context providers
+│       └── QueryProvider.tsx # React Query configuration
 │
-└── README.md                    # Project overview
-
+├── public/                   # Static files
+│   ├── screenshots/         # Screenshot storage
+│   └── ...                 # Other static assets
+│
+├── scripts/                 # Utility scripts
+│   └── restart-app.ps1     # Development server management
+│
+├── .env.local              # Environment variables
+├── package.json            # Project dependencies
+├── tsconfig.json           # TypeScript configuration
+└── tailwind.config.js      # Tailwind CSS configuration
 ```
 
 ## Key Components
@@ -52,6 +76,8 @@ Brain Dump App/
 - `/api/thoughts`: Thought submission and management
 - `/api/review`: Review system endpoints
 - `/api/sync`: External service synchronization
+- `/api/status`: System status monitoring
+- `/api/test-db`: Database health checks
 
 ### Configuration
 - `.env.local`: Environment variables
@@ -74,11 +100,11 @@ Brain Dump App/
 
 ### External Services
 - OpenRouter API (AI)
-- TickTick API (Tasks) - Pending
-- Google Calendar API (Events) - Pending
-- Notion API (Notes) - Pending
+- MongoDB Atlas (Database)
+- Heroku (Deployment)
 
 ### Development Tools
 - Git (Version Control)
 - npm (Package Management)
 - VS Code (IDE)
+- React Query (Data Fetching)

@@ -68,7 +68,7 @@ function formatReportsToMarkdown(reports: Bug[]): string {
   }
 
   if (recentlyClosed.length > 0) {
-    content += '\n### Recently Closed\n\n';
+    content += '\n### Recently Completed\n\n';
     recentlyClosed.forEach(item => {
       content += formatReportToMarkdown(item);
     });
