@@ -102,9 +102,18 @@ function calculateCost(tokenUsage: TokenUsage, modelId?: string): number {
 
 export async function transcribeAudio(audio: Blob): Promise<string> {
   try {
+    // Validate API key
+    const apiKey = process.env.OPENAI_API_KEY ?? '';
+    if (!apiKey) {
+      console.error('OPENAI_API_KEY is not set in environment');
+      throw new Error('OpenAI API key not configured');
+    }
+
     console.log('Preparing audio for transcription:', {
       size: audio.size,
-      type: audio.type
+      type: audio.type,
+      apiKeyPresent: true,
+      apiKeyLength: apiKey.length
     });
 
     // Create FormData and append audio file
@@ -120,7 +129,7 @@ export async function transcribeAudio(audio: Blob): Promise<string> {
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+        'Authorization': `Bearer ${apiKey}`
       },
       body: formData
     });
@@ -139,10 +148,13 @@ export async function transcribeAudio(audio: Blob): Promise<string> {
         error,
         requestDetails: {
           audioSize: audio.size,
-          audioType: audio.type
+          audioType: audio.type,
+          apiKeyPresent: true,
+          apiKeyLength: apiKey.length,
+          apiKeyPrefix: apiKey.substring(0, 7)
         }
       });
-      throw new Error('Failed to transcribe audio');
+      throw new Error(`Failed to transcribe audio: ${error.error?.message || 'Unknown error'}`);
     }
 
     const transcription = await response.text();

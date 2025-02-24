@@ -1,5 +1,25 @@
 import { NextResponse } from 'next/server';
 import { transcribeAudio, categorizeThought } from '@/utils/ai';
+
+export const runtime = 'edge';
+export const preferredRegion = 'iad1';  // US East (N. Virginia)
+
+// Validate required environment variables
+const validateEnv = () => {
+  const requiredEnvVars = {
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+    MONGODB_URI: process.env.MONGODB_URI
+  };
+
+  const missingVars = Object.entries(requiredEnvVars)
+    .filter(([_, value]) => !value)
+    .map(([key]) => key);
+
+  if (missingVars.length > 0) {
+    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+  }
+};
 import { 
   splitIntoThoughts, 
   hasStrongEventIndicators, 
@@ -12,7 +32,9 @@ import { getCollection } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
 export async function POST(request: Request) {
-    try {
+  try {
+    // Validate environment variables first
+    validateEnv();
       console.log('API Request received');
       const formData = await request.formData();
       const audio = formData.get('audio') as Blob;
