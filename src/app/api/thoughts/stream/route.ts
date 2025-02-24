@@ -12,13 +12,21 @@ import { getCollection } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
 export async function POST(request: Request) {
-  try {
-    const formData = await request.formData();
-    const audio = formData.get('audio') as Blob;
-    const type = formData.get('type') as string;
+    try {
+      console.log('API Request received');
+      const formData = await request.formData();
+      const audio = formData.get('audio') as Blob;
+      const type = formData.get('type') as string;
 
-    // Validate audio blob
-    if (!audio || audio.size === 0) {
+      console.log('Request details:', {
+        audioSize: audio?.size,
+        audioType: audio?.type,
+        requestType: type
+      });
+
+      // Validate audio blob
+      if (!audio || audio.size === 0) {
+        console.error('Invalid audio blob:', { audio });
       return NextResponse.json(
         { error: 'No audio data provided' },
         { status: 400 }
@@ -44,7 +52,7 @@ export async function POST(request: Request) {
 
         try {
           // First, transcribe the audio
-          console.log('Starting transcription...');
+          console.log('Starting transcription with Whisper API...');
           const transcription = await transcribeAudio(audio);
           
           // Validate transcription
@@ -55,21 +63,31 @@ export async function POST(request: Request) {
             throw new Error('Invalid transcription result');
           }
 
-          console.log('Transcription complete:', transcription);
+          console.log('Transcription complete:', {
+            length: transcription?.length,
+            preview: transcription?.substring(0, 100)
+          });
           sendEvent('transcription', { text: transcription });
 
           if (type === 'complete') {
             // Process segments
             console.log('Processing segments...');
+            const startTime = Date.now();
             const segments = splitIntoThoughts(transcription);
             if (segments.length === 0) {
               throw new Error('No segments found in transcription');
             }
-            console.log('Segments:', segments);
+            console.log('Segments extracted:', {
+              count: segments.length,
+              segments: segments.map(s => s.substring(0, 50))
+            });
             sendEvent('segments', { segments });
 
             // Process thoughts (categorization)
-            console.log('Categorizing thoughts...');
+            console.log('Categorizing thoughts...', {
+              segmentCount: segments.length,
+              processingTime: `${Date.now() - startTime}ms`
+            });
             const thoughtsCollection = await getCollection('thoughts');
             const batchId = new ObjectId(); // Group thoughts from same input
             
@@ -213,13 +231,24 @@ export async function POST(request: Request) {
 
             // Flatten the array of arrays into a single array of thoughts
             const flattenedThoughts = thoughts.flat();
-            console.log('Thoughts saved:', flattenedThoughts);
+            console.log('Thoughts processed:', {
+              count: flattenedThoughts.length,
+              types: flattenedThoughts.map(t => t.type),
+              totalTime: `${Date.now() - startTime}ms`
+            });
             sendEvent('complete', { thoughts: flattenedThoughts });
           }
 
           controller.close();
         } catch (error) {
-          console.error('Error in stream processing:', error);
+          console.error('Error in stream processing:', {
+            error: error instanceof Error ? {
+              message: error.message,
+              name: error.name,
+              stack: error.stack
+            } : error,
+            phase: 'stream-processing'
+          });
           sendEvent('error', { 
             message: error instanceof Error ? error.message : 'Unknown error'
           });
@@ -237,7 +266,14 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Error in POST handler:', error);
+    console.error('Error in POST handler:', {
+      error: error instanceof Error ? {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      } : error,
+      phase: 'request-handler'
+    });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to process audio' },
       { status: 500 }

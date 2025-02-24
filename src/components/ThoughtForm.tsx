@@ -121,10 +121,36 @@ export default function ThoughtForm() {
       // Start volume monitoring
       updateVolume();
 
+      // Check supported MIME types
+      const getMimeType = () => {
+        const types = [
+          'audio/webm',
+          'audio/mp4',
+          'audio/ogg',
+          'audio/wav'
+        ];
+        const supported = types.find(type => MediaRecorder.isTypeSupported(type));
+        console.log('Supported MIME type:', supported);
+        return supported || 'audio/webm';
+      };
+
       // Set up media recorder with timeslice for streaming
+      const mimeType = getMimeType();
+      console.log('Initializing MediaRecorder with MIME type:', mimeType);
       mediaRecorder.current = new MediaRecorder(stream, {
-        mimeType: 'audio/webm',
+        mimeType,
       });
+
+      // Add error handler
+      mediaRecorder.current.onerror = (event) => {
+        console.error('MediaRecorder error:', {
+          error: event.error,
+          message: event.error.message,
+          name: event.error.name
+        });
+        setError('Recording failed. Please try again.');
+        setRecordingState('idle');
+      };
       audioChunks.current = [];
 
       // Handle data chunks during recording
@@ -136,7 +162,8 @@ export default function ThoughtForm() {
         }
       };
 
-      mediaRecorder.current.onstop = async () => {
+      mediaRecorder.current.onstop = async (event) => {
+        console.log('MediaRecorder stopped:', event);
         setRecordingState('processing');
         setError(null);
         const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
@@ -148,7 +175,11 @@ export default function ThoughtForm() {
           return;
         }
 
-        console.log('Audio blob size:', audioBlob.size);
+        console.log('Audio blob details:', {
+          size: audioBlob.size,
+          type: audioBlob.type,
+          lastModified: new Date().toISOString()
+        });
         setIsTranscribing(true);
         
         // Send final audio for complete processing
@@ -157,19 +188,33 @@ export default function ThoughtForm() {
         formData.append('type', 'complete');
         
         try {
+          console.log('Sending audio to API...');
           const response = await fetch('/api/thoughts/stream', {
             method: 'POST',
             body: formData
           });
 
-          if (!response.ok) throw new Error('Failed to save thought');
+          console.log('API Response:', {
+            ok: response.ok,
+            status: response.status,
+            statusText: response.statusText
+          });
+
+          if (!response.ok) {
+            throw new Error(`Failed to save thought: ${response.status} ${response.statusText}`);
+          }
 
           const reader = response.body!.getReader();
           const decoder = new TextDecoder();
 
           while (true) {
+            console.log('Reading stream chunk...');
             const { value, done } = await reader.read();
-            if (done) break;
+            if (done) {
+              console.log('Stream complete');
+              break;
+            }
+            console.log('Received chunk:', value?.length, 'bytes');
 
             const chunk = decoder.decode(value);
             const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
@@ -228,13 +273,23 @@ export default function ThoughtForm() {
 
   const stopRecording = () => {
     if (mediaRecorder.current && recordingState === 'recording') {
+      console.log('Stopping recording...');
       mediaRecorder.current.stop();
+      
+      // Stop all tracks in the stream
+      mediaRecorder.current.stream.getTracks().forEach(track => {
+        console.log('Stopping track:', track.kind);
+        track.stop();
+      });
+      
       setVolume(0);
       
       if (animationFrame.current) {
+        console.log('Canceling animation frame');
         cancelAnimationFrame(animationFrame.current);
       }
       if (audioContext.current) {
+        console.log('Closing audio context');
         audioContext.current.close();
       }
     }

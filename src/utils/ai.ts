@@ -102,11 +102,19 @@ function calculateCost(tokenUsage: TokenUsage, modelId?: string): number {
 
 export async function transcribeAudio(audio: Blob): Promise<string> {
   try {
+    console.log('Preparing audio for transcription:', {
+      size: audio.size,
+      type: audio.type
+    });
+
     // Create FormData and append audio file
     const formData = new FormData();
     formData.append('file', audio, 'audio.webm');
     formData.append('model', 'whisper-1');
     formData.append('response_format', 'text');
+
+    console.log('Calling Whisper API...');
+    const startTime = Date.now();
 
     // Call Whisper API
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
@@ -117,14 +125,32 @@ export async function transcribeAudio(audio: Blob): Promise<string> {
       body: formData
     });
 
+    console.log('Whisper API response:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries(response.headers),
+      time: `${Date.now() - startTime}ms`
+    });
+
     if (!response.ok) {
       const error = await response.json();
-      console.error('Whisper API error:', error);
+      console.error('Whisper API error:', {
+        status: response.status,
+        error,
+        requestDetails: {
+          audioSize: audio.size,
+          audioType: audio.type
+        }
+      });
       throw new Error('Failed to transcribe audio');
     }
 
     const transcription = await response.text();
-    console.log('Transcription result:', transcription);
+    console.log('Transcription result:', {
+      length: transcription?.length,
+      preview: transcription?.substring(0, 100),
+      time: `${Date.now() - startTime}ms`
+    });
 
     if (!transcription || transcription.trim() === '') {
       throw new Error('Empty transcription result');
@@ -132,7 +158,17 @@ export async function transcribeAudio(audio: Blob): Promise<string> {
 
     return transcription;
   } catch (error) {
-    console.error('Transcription error:', error);
+    console.error('Transcription error:', {
+      error: error instanceof Error ? {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      } : error,
+      audioDetails: {
+        size: audio.size,
+        type: audio.type
+      }
+    });
     throw error;
   }
 }
