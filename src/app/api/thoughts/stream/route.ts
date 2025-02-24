@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
 import { transcribeAudio, categorizeThought } from '@/utils/ai';
 
-export const runtime = 'edge';
-export const preferredRegion = 'iad1';  // US East (N. Virginia)
-
-// Validate required environment variables
-const validateEnv = () => {
+// Validate required environment variables and MongoDB connection
+const validateSetup = async () => {
+  // Check environment variables
   const requiredEnvVars = {
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
@@ -19,6 +17,16 @@ const validateEnv = () => {
   if (missingVars.length > 0) {
     throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
   }
+
+    // Test MongoDB connection
+    try {
+      const collection = await getCollection('thoughts');
+      await collection.findOne({}); // Light operation to test connection
+      console.log('MongoDB connection validated');
+    } catch (error) {
+      console.error('MongoDB connection error:', error);
+      throw new Error('Failed to connect to MongoDB');
+    }
 };
 import { 
   splitIntoThoughts, 
@@ -33,9 +41,9 @@ import { ObjectId } from 'mongodb';
 
 export async function POST(request: Request) {
   try {
-    // Validate environment variables first
-    validateEnv();
-      console.log('API Request received');
+    // Validate setup before processing
+    await validateSetup();
+      console.log('Voice processing request received');
       const formData = await request.formData();
       const audio = formData.get('audio') as Blob;
       const type = formData.get('type') as string;
@@ -110,7 +118,9 @@ export async function POST(request: Request) {
               segmentCount: segments.length,
               processingTime: `${Date.now() - startTime}ms`
             });
+            console.log('Getting MongoDB collection...');
             const thoughtsCollection = await getCollection('thoughts');
+            console.log('MongoDB collection ready');
             const batchId = new ObjectId(); // Group thoughts from same input
             
             const thoughts = await Promise.all(
@@ -268,8 +278,12 @@ export async function POST(request: Request) {
               message: error.message,
               name: error.name,
               stack: error.stack
-            } : error,
-            phase: 'stream-processing'
+            } : 'Unknown error',
+            phase: 'stream-processing',
+            audioDetails: {
+              size: audio?.size,
+              type: audio?.type
+            }
           });
           sendEvent('error', { 
             message: error instanceof Error ? error.message : 'Unknown error'
@@ -293,8 +307,12 @@ export async function POST(request: Request) {
         message: error.message,
         name: error.name,
         stack: error.stack
-      } : error,
-      phase: 'request-handler'
+      } : 'Unknown error',
+      phase: 'request-handler',
+      envVars: {
+        hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+        hasMongoDBURI: !!process.env.MONGODB_URI
+      }
     });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to process audio' },
