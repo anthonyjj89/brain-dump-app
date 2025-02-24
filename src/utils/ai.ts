@@ -113,19 +113,33 @@ export async function transcribeAudio(audio: Blob): Promise<string> {
       size: audio.size,
       type: audio.type,
       apiKeyPresent: true,
-      apiKeyLength: apiKey.length
+      apiKeyLength: apiKey.length,
+      environment: process.env.NODE_ENV,
+      isVercel: !!process.env.VERCEL
     });
 
-    // Create FormData and append audio file
+    // Create FormData and append audio file with explicit filename and type
     const formData = new FormData();
-    formData.append('file', audio, 'audio.webm');
+    
+    // In Vercel environment, we need to be more explicit about the file
+    const audioFile = new File(
+      [audio], 
+      'audio.webm', 
+      { type: 'audio/webm' }
+    );
+    
+    formData.append('file', audioFile);
     formData.append('model', 'whisper-1');
     formData.append('response_format', 'text');
 
-    console.log('Calling Whisper API...');
+    console.log('Calling Whisper API with file details:', {
+      fileName: 'audio.webm',
+      fileType: 'audio/webm',
+      fileSize: audioFile.size
+    });
     const startTime = Date.now();
 
-    // Call Whisper API
+    // Call Whisper API with more detailed error handling
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {

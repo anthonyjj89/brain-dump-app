@@ -44,24 +44,74 @@ export async function POST(request: Request) {
     // Validate setup before processing
     await validateSetup();
       console.log('Voice processing request received');
-      const formData = await request.formData();
-      const audio = formData.get('audio') as Blob;
-      const type = formData.get('type') as string;
+      
+      let audioBlob: Blob;
+      let type: string = 'complete'; // Default value
+      
+      try {
+        const formData = await request.formData();
+        const audio = formData.get('audio');
+        type = formData.get('type') as string || 'complete';
+        
+        // Log detailed information about the audio object
+        console.log('Request details:', {
+          audioExists: !!audio,
+          audioType: audio ? (audio as any).type : 'unknown',
+          audioSize: audio ? (audio instanceof Blob ? (audio as Blob).size : 'not a Blob') : 0,
+          audioConstructor: audio ? audio.constructor.name : 'none',
+          requestType: type,
+          environment: process.env.NODE_ENV,
+          isVercel: !!process.env.VERCEL
+        });
 
-      console.log('Request details:', {
-        audioSize: audio?.size,
-        audioType: audio?.type,
-        requestType: type
-      });
-
-      // Validate audio blob
-      if (!audio || audio.size === 0) {
-        console.error('Invalid audio blob:', { audio });
-      return NextResponse.json(
-        { error: 'No audio data provided' },
-        { status: 400 }
-      );
-    }
+        // Validate audio data
+        if (!audio) {
+          console.error('No audio data provided');
+          return NextResponse.json(
+            { error: 'No audio data provided' },
+            { status: 400 }
+          );
+        }
+        
+        // Ensure we have a proper Blob to work with
+        if (audio instanceof Blob) {
+          audioBlob = audio;
+        } else if (typeof audio === 'object' && 'arrayBuffer' in audio) {
+          // Handle File or other arrayBuffer-supporting objects
+          try {
+            const buffer = await (audio as any).arrayBuffer();
+            audioBlob = new Blob([buffer], { type: 'audio/webm' });
+            console.log('Created blob from arrayBuffer:', { size: audioBlob.size });
+          } catch (error) {
+            console.error('Error converting to Blob:', error);
+            return NextResponse.json(
+              { error: 'Failed to process audio data' },
+              { status: 400 }
+            );
+          }
+        } else {
+          console.error('Unsupported audio format:', { audioType: typeof audio });
+          return NextResponse.json(
+            { error: 'Unsupported audio format' },
+            { status: 400 }
+          );
+        }
+        
+        // Final validation
+        if (audioBlob.size === 0) {
+          console.error('Empty audio blob');
+          return NextResponse.json(
+            { error: 'Empty audio data' },
+            { status: 400 }
+          );
+        }
+      } catch (error) {
+        console.error('Error processing audio data:', error);
+        return NextResponse.json(
+          { error: 'Failed to process audio data' },
+          { status: 400 }
+        );
+      }
 
     // Create stream for sending updates
     const encoder = new TextEncoder();
@@ -82,14 +132,20 @@ export async function POST(request: Request) {
 
         try {
           // First, transcribe the audio
-          console.log('Starting transcription with Whisper API...');
-          const transcription = await transcribeAudio(audio);
+          console.log('Starting transcription with Whisper API...', {
+            blobSize: audioBlob.size,
+            blobType: audioBlob.type
+          });
+          
+          const transcription = await transcribeAudio(audioBlob);
           
           // Validate transcription
           if (!transcription || transcription.trim() === '') {
+            console.error('Empty transcription result');
             throw new Error('Empty transcription result');
           }
           if (transcription === 'Transcribed text will appear here') {
+            console.error('Invalid transcription result');
             throw new Error('Invalid transcription result');
           }
 
@@ -281,8 +337,8 @@ export async function POST(request: Request) {
             } : 'Unknown error',
             phase: 'stream-processing',
             audioDetails: {
-              size: audio?.size,
-              type: audio?.type
+              size: audioBlob?.size,
+              type: audioBlob?.type
             }
           });
           sendEvent('error', { 
