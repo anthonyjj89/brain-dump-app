@@ -142,11 +142,11 @@ export default function ThoughtForm() {
       });
 
       // Add error handler
-      mediaRecorder.current.onerror = (event) => {
+      mediaRecorder.current.onerror = (event: Event) => {
         console.error('MediaRecorder error:', {
-          error: event.error,
-          message: event.error.message,
-          name: event.error.name
+          type: event.type,
+          message: 'Recording failed',
+          timestamp: new Date().toISOString()
         });
         setError('Recording failed. Please try again.');
         setRecordingState('idle');
