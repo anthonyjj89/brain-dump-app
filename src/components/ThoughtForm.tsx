@@ -297,7 +297,7 @@ export default function ThoughtForm() {
               <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700/50">
                 <div className="text-sm font-medium text-slate-400 mb-2">Voice Input:</div>
                 <div className="text-gray-300 font-mono pl-4 py-2 bg-slate-800/30 rounded-lg border-l-2 border-blue-500/50 animate-type-in">
-                  "{transcribedText}"
+                  &quot;{transcribedText}&quot;
                 </div>
               </div>
               

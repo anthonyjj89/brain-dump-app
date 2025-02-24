@@ -58,7 +58,7 @@ export default function ProcessingBreakdown({ originalText, segments, thoughts }
           bg-slate-800/30 rounded-lg
           animate-type-in
         ">
-          "{originalText}"
+          &quot;{originalText}&quot;
         </div>
       </div>
 
