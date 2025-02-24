@@ -1,6 +1,6 @@
 import './globals.css'
 import type { Metadata } from 'next'
-import QueryProvider from '@/providers/QueryProvider'
+import ClientBody from '@/components/ClientBody'
 
 export const metadata: Metadata = {
   title: 'Brain Dump App',
@@ -15,9 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen bg-gray-50">
-        <QueryProvider>
+        <ClientBody>
           {children}
-        </QueryProvider>
+        </ClientBody>
       </body>
     </html>
   )

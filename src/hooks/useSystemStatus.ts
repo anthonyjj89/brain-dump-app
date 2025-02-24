@@ -37,13 +37,21 @@ async function fetchSystemStatus(): Promise<StatusData> {
   return response.json();
 }
 
+interface UseSystemStatusOptions {
+  autoRefresh?: boolean;
+  refreshInterval?: number;
+}
+
 // Hook for system status
-export function useSystemStatus() {
+export function useSystemStatus({ 
+  autoRefresh = false, 
+  refreshInterval = 60 * 1000 
+}: UseSystemStatusOptions = {}) {
   return useQuery({
     queryKey: ['systemStatus'],
     queryFn: fetchSystemStatus,
-    // Refetch every minute
-    refetchInterval: 60 * 1000,
+    // Only refetch if auto-refresh is enabled
+    refetchInterval: autoRefresh ? refreshInterval : 0,
     // Start fetching immediately when hook is mounted
     refetchOnMount: true,
     // Use placeholder data while fetching
@@ -69,13 +77,21 @@ async function fetchMetrics(): Promise<Metrics> {
   return response.json();
 }
 
+interface UseMetricsOptions {
+  autoRefresh?: boolean;
+  refreshInterval?: number;
+}
+
 // Hook for live metrics
-export function useMetrics() {
+export function useMetrics({
+  autoRefresh = false,
+  refreshInterval = 5000
+}: UseMetricsOptions = {}) {
   return useQuery({
     queryKey: ['metrics'],
     queryFn: fetchMetrics,
-    // Refetch every second for live updates
-    refetchInterval: 1000,
+    // Only refetch if auto-refresh is enabled
+    refetchInterval: autoRefresh ? refreshInterval : 0,
     // Use placeholder data while fetching
     placeholderData: (previousData) => previousData,
     // Don't show loading state if we have data

@@ -4,10 +4,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import StatusTab from './StatusTab';
 import BugTab from './BugTab';
+import ModelTab from './ModelTab';
 
 const AdminPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'status' | 'bugs'>('status');
+  const [activeTab, setActiveTab] = useState<'status' | 'bugs' | 'models'>('status');
   const [reportType, setReportType] = useState<'bug' | 'feature'>('bug');
   const panelRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -121,7 +122,7 @@ const AdminPanel: React.FC = () => {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-gray-700 transition-colors admin-panel"
+        className="fixed bottom-4 right-4 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-slate-700 transition-colors admin-panel"
       >
         Show Admin Panel
       </button>
@@ -131,52 +132,51 @@ const AdminPanel: React.FC = () => {
   return (
     <div 
       ref={panelRef}
-      className="fixed bottom-4 right-4 bg-white p-6 rounded-lg shadow-xl border border-gray-200 w-[600px] max-h-[80vh] overflow-y-auto z-50 admin-panel"
+      className="fixed bottom-4 right-4 bg-slate-900 p-6 rounded-lg shadow-xl border border-slate-700 w-[600px] max-h-[80vh] overflow-y-auto z-50 admin-panel"
     >
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Admin Panel</h2>
+        <h2 className="text-xl font-semibold text-white">Admin Panel</h2>
         <button
           onClick={() => setIsOpen(false)}
-          className="text-gray-500 hover:text-gray-700"
+          className="text-gray-400 hover:text-gray-300"
         >
           ✕
         </button>
       </div>
 
       <div className="mb-4">
-        <div className="flex space-x-2 border-b border-gray-200">
-          <button
-            onClick={() => setActiveTab('status')}
-            className={`px-4 py-2 ${
-              activeTab === 'status'
-                ? 'border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-500'
-            }`}
-          >
-            System Status
-          </button>
-          <button
-            onClick={() => setActiveTab('bugs')}
-            className={`px-4 py-2 ${
-              activeTab === 'bugs'
-                ? 'border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-500'
-            }`}
-          >
-            Bug Reports
-          </button>
+        <div className="flex space-x-2 border-b border-slate-700">
+          {[
+            { id: 'status', label: '📊 System Status' },
+            { id: 'models', label: '🤖 AI Models', highlight: true },
+            { id: 'bugs', label: '🐛 Bug Reports' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as 'status' | 'bugs' | 'models')}
+              className={`px-4 py-2 relative ${
+                activeTab === tab.id
+                  ? 'border-b-2 border-blue-500 text-blue-400'
+                  : 'text-gray-400 hover:text-gray-300'
+              } ${tab.highlight ? 'after:content-[""] after:absolute after:top-0 after:right-0 after:w-2 after:h-2 after:bg-blue-500 after:rounded-full' : ''}`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {activeTab === 'status' ? (
         <StatusTab onRefresh={() => {}} />
-      ) : (
+      ) : activeTab === 'bugs' ? (
         <BugTab 
           onReportSubmit={() => {}} 
           reportType={reportType}
           setReportType={setReportType}
           onHidePanel={handleHidePanel}
         />
+      ) : (
+        <ModelTab />
       )}
     </div>
   );

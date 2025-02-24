@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSystemStatus, useMetrics } from '@/hooks/useSystemStatus';
 
 interface StatusTabProps {
@@ -17,19 +17,42 @@ function formatBytes(bytes: number): string {
 }
 
 export default function StatusTab({ onRefresh }: StatusTabProps) {
-  // Get system status (refreshes every minute)
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [refreshInterval, setRefreshInterval] = useState(5000);
+
+  // Load preferences from localStorage
+  useEffect(() => {
+    const savedAutoRefresh = localStorage.getItem('statusAutoRefresh');
+    const savedInterval = localStorage.getItem('statusRefreshInterval');
+    if (savedAutoRefresh) setAutoRefresh(savedAutoRefresh === 'true');
+    if (savedInterval) setRefreshInterval(parseInt(savedInterval));
+  }, []);
+
+  // Save preferences to localStorage
+  useEffect(() => {
+    localStorage.setItem('statusAutoRefresh', autoRefresh.toString());
+    localStorage.setItem('statusRefreshInterval', refreshInterval.toString());
+  }, [autoRefresh, refreshInterval]);
+
+  // Get system status with auto-refresh config
   const { 
     data: status,
     isLoading: statusLoading,
     error: statusError,
     refetch: refetchStatus
-  } = useSystemStatus();
+  } = useSystemStatus({
+    autoRefresh,
+    refreshInterval
+  });
 
-  // Get live metrics (refreshes every second)
+  // Get live metrics with auto-refresh config
   const {
     data: metrics,
     error: metricsError
-  } = useMetrics();
+  } = useMetrics({
+    autoRefresh,
+    refreshInterval
+  });
 
   if (statusLoading && !status) { // Only show loading on initial load
     return (
@@ -180,20 +203,55 @@ export default function StatusTab({ onRefresh }: StatusTabProps) {
         )}
       </div>
 
-      <button
-        onClick={() => {
-          refetchStatus();
-          onRefresh();
-        }}
-        disabled={statusLoading}
-        className={`mt-4 w-full py-2 rounded transition-colors ${
-          statusLoading
-            ? 'bg-gray-300 cursor-not-allowed'
-            : 'bg-blue-600 text-white hover:bg-blue-700'
-        }`}
-      >
-        {statusLoading ? 'Refreshing...' : 'Refresh Status'}
-      </button>
+      <div className="mt-4 space-y-2">
+        {/* Auto-refresh controls */}
+        <div className="flex items-center justify-between bg-slate-800 p-2 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setAutoRefresh(!autoRefresh)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                autoRefresh ? 'bg-blue-600' : 'bg-slate-700'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  autoRefresh ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+            <span className="text-sm text-gray-300">Auto-refresh</span>
+          </div>
+          
+          {autoRefresh && (
+            <select
+              value={refreshInterval}
+              onChange={(e) => setRefreshInterval(parseInt(e.target.value))}
+              className="bg-slate-700 text-gray-300 text-sm rounded px-2 py-1 border-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="5000">5s</option>
+              <option value="10000">10s</option>
+              <option value="30000">30s</option>
+              <option value="60000">60s</option>
+            </select>
+          )}
+        </div>
+
+        {/* Refresh button */}
+        <button
+          onClick={() => {
+            refetchStatus();
+            onRefresh();
+          }}
+          disabled={statusLoading}
+          className={`w-full py-2 rounded transition-colors ${
+            statusLoading
+              ? 'bg-slate-700 cursor-not-allowed'
+              : 'bg-blue-600 text-white hover:bg-blue-500'
+          }`}
+        >
+          {statusLoading ? 'Refreshing...' : 'Refresh Status'}
+        </button>
+      </div>
     </div>
   ) : null;
 }

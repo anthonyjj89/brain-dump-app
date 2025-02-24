@@ -12,7 +12,18 @@ interface AIResponse {
   };
 }
 
-export async function categorizeThought(content: string): Promise<AIResponse> {
+interface TokenUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
+interface AIResult extends AIResponse {
+  tokenUsage: TokenUsage;
+  cost: number;
+}
+
+export async function categorizeThought(content: string, modelId?: string): Promise<AIResult> {
   try {
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
@@ -25,7 +36,7 @@ export async function categorizeThought(content: string): Promise<AIResponse> {
       method: 'POST',
       headers,
       body: JSON.stringify({
-        model: 'anthropic/claude-3-haiku',
+      model: modelId || 'anthropic/claude-3-haiku',
         messages: [
           {
             role: 'system',
@@ -61,7 +72,27 @@ export async function categorizeThought(content: string): Promise<AIResponse> {
       throw new Error('Invalid AI response format');
     }
 
-    return aiResponse;
+    // Calculate token usage and cost
+    const tokenUsage = result.usage || {
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0
+    };
+
+    // Cost per 1K tokens (in USD)
+    const costPer1K = {
+      'anthropic/claude-3-haiku': 0.0005,
+      'deepseek-ai/deepseek-chat-7b': 0.0001
+    };
+
+    const modelCost = costPer1K[modelId as keyof typeof costPer1K] || costPer1K['anthropic/claude-3-haiku'];
+    const cost = (tokenUsage.total_tokens / 1000) * modelCost;
+
+    return {
+      ...aiResponse,
+      tokenUsage,
+      cost
+    };
   } catch (error) {
     console.error('Error categorizing thought:', error);
     // Default to note type if AI categorization fails
@@ -70,7 +101,13 @@ export async function categorizeThought(content: string): Promise<AIResponse> {
       processedContent: {
         title: 'Uncategorized Thought',
         details: content
-      }
+      },
+      tokenUsage: {
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0
+      },
+      cost: 0
     };
   }
 }

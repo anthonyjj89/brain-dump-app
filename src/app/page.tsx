@@ -1,46 +1,85 @@
+'use client';
+
+import { useState } from 'react';
 import ThoughtForm from '@/components/ThoughtForm';
-import ReviewCards from '@/components/ReviewCards';
 import AdminPanel from '@/components/AdminPanel';
+import Logo from '@/components/shared/Logo';
+import TabNav from '@/components/Navigation/TabNav';
+import AllThoughtsView from '@/components/Views/AllThoughtsView';
+
+type Tab = 'all' | 'tasks' | 'events' | 'notes';
+type Status = 'pending' | 'approved' | 'rejected';
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState('all');
+  const [status, setStatus] = useState<Status>('pending');
+
   return (
-    <main className="min-h-screen p-8 bg-gray-50">
+    <main className="min-h-screen p-8 bg-slate-900 text-white">
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">Brain Dump App</h1>
-          <span className="text-sm text-gray-500">v0.1.3</span>
-        </div>
+        <Logo className="mb-8 relative" />
         
-        {/* Thought Input Section */}
+        {/* Main Input Section */}
         <section className="mb-12">
-          <h2 className="text-2xl font-semibold mb-4 text-gray-800">Dump Your Thoughts</h2>
-          <div className="bg-white shadow-lg rounded-lg p-6">
+          <h2 className="text-2xl font-semibold mb-4 text-white">Dump Your Thoughts</h2>
+          <div className="bg-slate-800 shadow-lg rounded-lg p-6 border border-slate-700">
             <ThoughtForm />
           </div>
         </section>
 
-        {/* Review Cards Section */}
-        <section>
-          <h2 className="text-2xl font-semibold mb-4 text-gray-800">Review Cards</h2>
-          <ReviewCards />
-        </section>
+        {/* Status Filter */}
+        <div className="flex justify-center gap-2 mb-6">
+          <button
+            onClick={() => setStatus('pending')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              status === 'pending'
+                ? 'bg-yellow-500 text-black'
+                : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+            }`}
+          >
+            Pending
+          </button>
+          <button
+            onClick={() => setStatus('approved')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              status === 'approved'
+                ? 'bg-green-500 text-black'
+                : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+            }`}
+          >
+            Approved
+          </button>
+          <button
+            onClick={() => setStatus('rejected')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              status === 'rejected'
+                ? 'bg-red-500 text-black'
+                : 'bg-slate-800 text-gray-300 hover:bg-slate-700'
+            }`}
+          >
+            Rejected
+          </button>
+        </div>
 
-        {/* Quick Info */}
-        <section className="mt-12 bg-blue-50 rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-2 text-blue-900">How it works</h3>
-          <ul className="list-disc list-inside space-y-2 text-blue-800">
-            <li>Type or speak your thoughts</li>
-            <li>AI automatically categorizes them</li>
-            <li>Review and approve the categorized items</li>
-            <li>Approved items sync to your preferred services:
-              <ul className="ml-6 mt-1 list-disc list-inside text-blue-700">
-                <li>Tasks → TickTick</li>
-                <li>Events → Google Calendar</li>
-                <li>Notes → Notion</li>
-              </ul>
-            </li>
-          </ul>
-        </section>
+        {/* Tab Navigation */}
+        <div className="mb-8">
+          <TabNav
+            activeTab={activeTab}
+            onTabChange={(tab: string) => setActiveTab(tab as Tab)}
+            tabs={[
+              { id: 'all', label: '💩 All Dumps' },
+              { id: 'tasks', label: '📝 Tasks' },
+              { id: 'events', label: '📅 Events' },
+              { id: 'notes', label: '📋 Notes' }
+            ]}
+          />
+        </div>
+
+        {/* Content */}
+        <AllThoughtsView
+          status={status}
+          thoughtType={activeTab === 'all' ? undefined : activeTab === 'tasks' ? 'task' : activeTab === 'events' ? 'event' : 'note'}
+        />
 
         {/* Admin Panel */}
         <AdminPanel />

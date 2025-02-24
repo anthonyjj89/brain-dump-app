@@ -4,10 +4,140 @@ import { getCollection } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { categorizeThought } from '@/utils/ai';
 
+async function transcribeAudio(audioBlob: Blob): Promise<string> {
+  // Keep original WebM format
+  const formData = new FormData();
+  
+  // Log incoming audio details
+  console.log('Transcribing audio:', {
+    type: audioBlob.type,
+    size: audioBlob.size
+  });
+
+  // Create file with original type
+  const audioFile = new File([audioBlob], 'recording.webm', {
+    type: audioBlob.type
+  });
+
+  // Prepare API request
+  formData.append('file', audioFile);
+  formData.append('model', 'whisper-1');
+  formData.append('language', 'en');
+  formData.append('response_format', 'json');
+  formData.append('temperature', '0.2');
+
+  // Make API request with timeout
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    console.log('Sending request to Whisper API...');
+    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: formData,
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      console.error('Whisper API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      });
+      throw new Error(
+        errorData?.error?.message || 
+        response.statusText || 
+        'Failed to transcribe audio'
+      );
+    }
+
+    const data = await response.json();
+    console.log('Transcription result:', {
+      text: data.text?.substring(0, 100) + '...',
+      duration: data.duration,
+      language: data.language
+    });
+    return data.text;
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error('Transcription request timed out');
+      throw new Error('Transcription request timed out after 30 seconds');
+    }
+    console.error('Transcription error:', error);
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { content, type = 'text', rawAudio = null } = body;
+    let content: string;
+    let type: string;
+    let modelId: string | undefined;
+    let rawAudio: Blob | undefined;
+
+    // Check if the request is multipart form data (voice input)
+    const contentType = request.headers.get('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      console.log('Processing voice input...');
+      const formData = await request.formData();
+      
+      // Log received form data
+      console.log('Received form data:', {
+        hasAudio: formData.has('audio'),
+        audioType: formData.get('audio') instanceof Blob ? (formData.get('audio') as Blob).type : null,
+        content: formData.get('content'),
+        type: formData.get('type'),
+        modelId: formData.get('modelId')
+      });
+
+      content = formData.get('content') as string;
+      type = formData.get('type') as string;
+      modelId = formData.get('modelId') as string;
+      rawAudio = formData.get('audio') as unknown as Blob;
+
+      // Validate audio data
+      if (!rawAudio) {
+        console.error('No audio data received');
+        return NextResponse.json(
+          { error: 'No audio data received' },
+          { status: 400 }
+        );
+      }
+
+      if (!rawAudio.type.includes('audio/')) {
+        console.error('Invalid audio format:', rawAudio.type);
+        return NextResponse.json(
+          { error: 'Invalid audio format' },
+          { status: 400 }
+        );
+      }
+
+      try {
+        console.log('Starting transcription...');
+        content = await transcribeAudio(rawAudio);
+        console.log('Transcription completed:', content.substring(0, 100) + '...');
+      } catch (error) {
+        console.error('Transcription error:', error);
+        return NextResponse.json(
+          { error: error instanceof Error ? error.message : 'Failed to transcribe audio' },
+          { status: 500 }
+        );
+      }
+    } else {
+      // Regular JSON request (text input)
+      const body = await request.json();
+      content = body.content;
+      type = body.type;
+      modelId = body.modelId;
+    }
 
     if (!content) {
       return NextResponse.json(
@@ -17,14 +147,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Process thought with AI
-    const aiResult = await categorizeThought(content);
+    const aiResult = await categorizeThought(content, modelId);
 
     const thoughts = await getCollection('thoughts');
 
     const thought = {
       content,
       inputType: type,
-      rawAudio,
+      rawAudio: rawAudio ? true : undefined,
       thoughtType: aiResult.thoughtType,
       processedContent: aiResult.processedContent,
       status: 'pending',
@@ -41,7 +171,9 @@ export async function POST(request: NextRequest) {
       message: 'Thought captured and categorized successfully',
       data: {
         id: result.insertedId,
-        ...thought
+        ...thought,
+        tokenUsage: aiResult.tokenUsage,
+        cost: aiResult.cost
       }
     });
   } catch (error) {
@@ -57,19 +189,44 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'pending';
+    const thoughtType = searchParams.get('thoughtType');
+    const cursor = searchParams.get('cursor'); // timestamp for pagination
     const limit = parseInt(searchParams.get('limit') || '10');
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const sortOrder = searchParams.get('sortOrder') || 'desc';
 
     const thoughts = await getCollection('thoughts');
 
+    // Build query
+    const query: any = { status };
+    if (thoughtType) {
+      query.thoughtType = thoughtType;
+    }
+    if (cursor) {
+      query[sortBy] = sortOrder === 'desc' 
+        ? { $lt: new Date(cursor) }
+        : { $gt: new Date(cursor) };
+    }
+
+    // Execute query
     const result = await thoughts
-      .find({ status })
-      .limit(limit)
-      .sort({ createdAt: -1 })
+      .find(query)
+      .limit(limit + 1) // Get one extra to check if there are more items
+      .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
       .toArray();
+
+    // Check if there are more items
+    const hasNextPage = result.length > limit;
+    const items = hasNextPage ? result.slice(0, -1) : result;
+    const nextCursor = hasNextPage ? items[items.length - 1][sortBy].toISOString() : null;
 
     return NextResponse.json({
       status: 'success',
-      data: result
+      data: {
+        items,
+        nextCursor,
+        hasNextPage
+      }
     });
   } catch (error) {
     console.error('Error in thoughts API:', error);
