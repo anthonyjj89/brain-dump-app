@@ -26,42 +26,34 @@ export function splitIntoThoughts(text: string): string[] {
   // Clean up speech patterns first
   text = cleanSpeech(text);
 
-  // Split by major punctuation first
-  const segments = text.split(/(?:[.!?])+/).filter(Boolean);
-  const thoughts: string[] = [];
+  // First extract meetings
+  const meetings = extractMeetings(text);
+  const meetingStrings = meetings.map(meeting => {
+    let thought = `meeting with ${meeting.person}`;
+    if (meeting.date) thought += ` ${meeting.date}`;
+    if (meeting.time) thought += ` at ${meeting.time}`;
+    return thought;
+  });
 
-  for (const segment of segments) {
-    // Split by "and" and commas, but keep meeting parts together
-    const parts = segment
-      .split(/(?:,|\sand\s)+/)
-      .map(part => part.trim())
-      .filter(Boolean);
+  // Then extract standalone tasks (excluding meeting parts)
+  const meetingParts = meetings.map(m => m.context).join('|');
+  const meetingRegex = meetingParts ? new RegExp(`(?:${meetingParts})`, 'g') : null;
+  const textWithoutMeetings = meetingRegex ? text.replace(meetingRegex, '') : text;
 
-    for (const part of parts) {
-      // Check if this part contains meeting information
-      if (part.toLowerCase().includes('meeting') || part.toLowerCase().includes('meet with')) {
-        // Try to find a time in nearby parts
-        const timeMatch = extractTime(part) || parts.find(p => extractTime(p));
-        const dateMatch = extractDate(part) || parts.find(p => extractDate(p));
-        
-        let meetingText = part;
-        if (timeMatch && !part.includes(timeMatch)) {
-          meetingText += ` at ${timeMatch}`;
-        }
-        if (dateMatch && !part.includes(dateMatch)) {
-          meetingText += ` ${dateMatch}`;
-        }
-        
-        thoughts.push(meetingText);
-      } else if (hasTaskIndicators(part) || !hasEventIndicators(part)) {
-        // If it's not a meeting and has task indicators or no event indicators,
-        // treat it as a standalone task/note
-        thoughts.push(cleanSpeech(part.replace(/^(?:need to|have to|must|should)\s+/i, '')));
-      }
-    }
-  }
+  const tasks = textWithoutMeetings
+    .split(/(?:,|\sand\s|\.|!|\?)+/g)
+    .map(task => task.trim())
+    .filter(task => {
+      return task && 
+        !task.toLowerCase().includes('meeting') &&
+        !task.toLowerCase().includes('meet with');
+    })
+    .map(task => {
+      // Remove leading task indicators and clean speech patterns
+      return cleanSpeech(task.replace(/^(?:need to|have to|must|should)\s+/i, ''));
+    });
 
-  return thoughts.filter(Boolean);
+  return [...tasks, ...meetingStrings].filter(Boolean);
 }
 
 /**
@@ -71,10 +63,9 @@ function normalizeTime(timeStr: string): string {
   if (timeStr.match(/midday|noon/i)) {
     return '12pm';
   }
-  // Add pm if no am/pm specified and hour is less than 12
+  // Add pm if no am/pm specified
   if (!timeStr.match(/am|pm/i)) {
-    const hour = parseInt(timeStr);
-    return hour < 12 ? `${timeStr}am` : `${timeStr}pm`;
+    return `${timeStr}pm`;
   }
   return timeStr;
 }
@@ -83,8 +74,8 @@ function extractMeetings(text: string): Meeting[] {
   const meetings: Meeting[] = [];
   let lastDate: string | undefined;
 
-  // Split by major punctuation first
-  const segments = text.split(/(?:[.!?])+/);
+  // Split by conjunctions and commas
+  const segments = text.split(/(?:\s*,\s*|\s+and\s+|\s*\.\s*)/);
 
   for (const segment of segments) {
     if (!segment.trim()) continue;
@@ -93,24 +84,72 @@ function extractMeetings(text: string): Meeting[] {
     const date = extractDate(segment);
     if (date) lastDate = date;
 
-    // Look for meeting patterns
-    const meetingMatch = segment.match(/(?:meeting|meet)(?:\s+(?:tomorrow|today|next|\w+day))?\s*(?:at\s+)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?|midday|noon)?(?:\s+with\s+([A-Z][a-z]+))?/i);
-    
-    if (meetingMatch) {
-      const [fullMatch, time, person] = meetingMatch;
-      
-      // Look for date in the same segment if not found earlier
-      const meetingDate = date || extractDate(segment);
-      
-      // Look for time in the same segment if not found in the pattern
-      const meetingTime = time ? normalizeTime(time) : extractTime(segment);
-
+    // Pattern 1: "meeting tomorrow at X with Person"
+    const pattern1 = segment.match(/(?:meeting|meet)(?:\s+(?:tomorrow|today|next))?\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?|midday|noon)\s+with\s+([A-Z][a-z]+)/i);
+    if (pattern1) {
+      const [_, time, person] = pattern1;
       meetings.push({
-        context: segment.trim(),
-        person: person || '',
-        time: meetingTime || '',
-        date: meetingDate
+        context: segment,
+        person,
+        time: normalizeTime(time),
+        date: lastDate
       });
+      continue;
+    }
+
+    // Pattern 2: "meeting with Person at Time"
+    const pattern2 = segment.match(/(?:meeting|meet)\s+with\s+([A-Z][a-z]+)(?:\s+(?:tomorrow|today|next))?\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?|midday|noon)/i);
+    if (pattern2) {
+      const [_, person, time] = pattern2;
+      meetings.push({
+        context: segment,
+        person,
+        time: normalizeTime(time),
+        date: lastDate
+      });
+      continue;
+    }
+
+    // Pattern 3: "X with Person"
+    const pattern3 = segment.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm)?|midday|noon)\s+with\s+([A-Z][a-z]+)/i);
+    if (pattern3) {
+      const [_, time, person] = pattern3;
+      meetings.push({
+        context: segment,
+        person,
+        time: normalizeTime(time),
+        date: lastDate
+      });
+      continue;
+    }
+
+    // Pattern 4: "Person at Time"
+    const pattern4 = segment.match(/([A-Z][a-z]+)\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?|midday|noon)/i);
+    if (pattern4) {
+      const [_, person, time] = pattern4;
+      meetings.push({
+        context: segment,
+        person,
+        time: normalizeTime(time),
+        date: lastDate
+      });
+      continue;
+    }
+
+    // Pattern 5: Just a person with previous context
+    const personMatch = segment.match(/(?:with\s+)?([A-Z][a-z]+)(?:\s+(?:tomorrow|today|next))?/i);
+    if (personMatch && meetings.length > 0) {
+      const [_, person] = personMatch;
+      const prevMeeting = meetings[meetings.length - 1];
+      if (prevMeeting.time && !prevMeeting.person) {
+        prevMeeting.person = person;
+      }
+    }
+
+    // Pattern 6: Just a time with previous context
+    const timeMatch = extractTime(segment);
+    if (timeMatch && meetings.length > 0 && !meetings[meetings.length - 1].time) {
+      meetings[meetings.length - 1].time = timeMatch;
     }
   }
 
@@ -120,7 +159,7 @@ function extractMeetings(text: string): Meeting[] {
 /**
  * Extract a single time reference from text
  */
-export function extractTime(text: string): string | undefined {
+function extractTime(text: string): string | undefined {
   // Match patterns like:
   // "2pm", "at 2pm", "2:00pm"
   // "at 2", "at 2:00"
@@ -146,7 +185,7 @@ export function extractTime(text: string): string | undefined {
 /**
  * Extract date references from text
  */
-export function extractDate(text: string): string | undefined {
+function extractDate(text: string): string | undefined {
   // Match patterns like:
   // "tomorrow", "today", "tonight"
   // "on Monday", "next Tuesday"
