@@ -1,5 +1,4 @@
 # Issue Tracking Index
-// comment
 ## Active Issues
 
 ### 1. MongoDB Import Paths Issue
