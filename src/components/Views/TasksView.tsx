@@ -1,61 +1,65 @@
+import { useThoughts, type Thought } from '@/hooks/useThoughts';
 import ContentCard from '../shared/ContentCard';
 
-// This would be replaced with actual data fetching
-const mockTasks = [
-  {
-    id: '1',
-    title: 'Complete project documentation',
-    content: 'Write comprehensive documentation for the Brain Dump App project',
-    timestamp: '2024-02-24T10:00:00Z',
-    status: 'In Progress'
-  },
-  {
-    id: '2',
-    title: 'Review pull requests',
-    content: 'Review and merge pending pull requests for the main branch',
-    timestamp: '2024-02-24T11:00:00Z',
-    status: 'Pending'
+interface TasksViewProps {
+  status: 'pending' | 'approved';
+}
+
+export default function TasksView({ status }: TasksViewProps) {
+  const { thoughts, isLoading, error, handleApprove, handleReject, handleTypeChange } = useThoughts({ 
+    thoughtType: 'task',
+    status 
+  });
+
+  const handleFix = async (id: string, method: 'voice' | 'text') => {
+    // TODO: Implement fix functionality
+    console.log('Fix task:', id, method);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
-];
 
-export default function TasksView() {
+  if (error) {
+    return (
+      <div className="text-red-500 p-4">
+        Error loading tasks
+      </div>
+    );
+  }
+
+  if (thoughts.length === 0) {
+    return (
+      <div className="text-center text-gray-400 py-8">
+        {status === 'pending' ? 'No tasks to review' : 'No approved tasks yet'}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold text-gray-900">Tasks</h2>
-        <div className="flex gap-2">
-          <select className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700">
-            <option value="all">All Tasks</option>
-            <option value="pending">Pending</option>
-            <option value="in-progress">In Progress</option>
-            <option value="completed">Completed</option>
-          </select>
-          <button className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors duration-200">
-            New Task
-          </button>
-        </div>
-      </div>
-
-      <div className="grid gap-4">
-        {mockTasks.map((task) => (
-          <ContentCard
-            key={task.id}
-            title={task.title}
-            content={task.content}
-            type="task"
-            timestamp={new Date(task.timestamp).toLocaleString()}
-            status={task.status}
-            onAction={() => console.log('Task action clicked')}
-            actionLabel="Complete"
-          />
-        ))}
-      </div>
-
-      {mockTasks.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No tasks found</p>
-        </div>
-      )}
+    <div className="space-y-4">
+      {thoughts.map((thought: Thought) => (
+        <ContentCard
+          key={thought._id}
+          thought={{
+            id: thought._id,
+            thoughtType: thought.thoughtType,
+            confidence: thought.confidence,
+            possibleTypes: thought.possibleTypes,
+            content: thought.content,
+            status: thought.status,
+            processedContent: thought.processedContent
+          }}
+          onTypeChange={handleTypeChange}
+          onApprove={status === 'pending' ? handleApprove : undefined}
+          onReject={status === 'pending' ? handleReject : undefined}
+          onFix={status === 'pending' ? handleFix : undefined}
+        />
+      ))}
     </div>
   );
 }

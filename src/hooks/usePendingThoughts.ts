@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
-interface Thought {
+export interface Thought {
   _id: string;
   content: string;
   thoughtType: 'task' | 'event' | 'note' | 'uncertain';
@@ -22,20 +22,15 @@ interface Thought {
   createdAt: string;
 }
 
-interface UseThoughtsOptions {
-  thoughtType?: string;
-  status: 'pending' | 'approved';
-}
-
-async function fetchThoughts({ thoughtType, status }: UseThoughtsOptions) {
+async function fetchPendingThoughts(thoughtType?: string) {
   const params = new URLSearchParams({
-    status,
+    status: 'pending',
     ...(thoughtType && { thoughtType })
   });
   
   const response = await fetch(`/api/thoughts?${params}`);
   if (!response.ok) {
-    throw new Error('Failed to fetch thoughts');
+    throw new Error('Failed to fetch pending thoughts');
   }
   const data = await response.json();
   return data.data.items;
@@ -78,32 +73,19 @@ async function updateThoughtType(id: string, thoughtType: 'task' | 'event' | 'no
   }
 }
 
-export function useThoughts({ thoughtType, status }: UseThoughtsOptions) {
+export function usePendingThoughts(filter?: string) {
   const queryClient = useQueryClient();
 
   const { data: thoughts = [], isLoading, error } = useQuery({
-    queryKey: ['thoughts', thoughtType, status],
-    queryFn: () => fetchThoughts({ thoughtType, status }),
-    refetchOnWindowFocus: false,
-    staleTime: 5000, // Consider data fresh for 5s
-    gcTime: 10 * 60 * 1000, // Keep cache for 10 mins
-    refetchInterval: 3000 // Poll every 3s
+    queryKey: ['thoughts', 'pending', filter],
+    queryFn: () => fetchPendingThoughts(filter)
   });
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string, status: 'approved' | 'rejected' }) => 
       updateThoughtStatus(id, status),
     onSuccess: () => {
-      // Invalidate all thought queries
       queryClient.invalidateQueries({ queryKey: ['thoughts'] });
-      
-      // If we're not on pending tab and this is a new thought
-      if (status !== 'pending') {
-        // Trigger a refetch of pending thoughts
-        queryClient.invalidateQueries({ 
-          queryKey: ['thoughts', undefined, 'pending']
-        });
-      }
     }
   });
 
@@ -136,5 +118,3 @@ export function useThoughts({ thoughtType, status }: UseThoughtsOptions) {
     handleTypeChange
   };
 }
-
-export type { Thought };

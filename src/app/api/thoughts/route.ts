@@ -3,6 +3,14 @@ import type { NextRequest } from 'next/server';
 import { getCollection } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { categorizeThought } from '@/utils/ai';
+import { 
+  splitIntoThoughts,
+  hasTaskIndicators,
+  hasEventIndicators,
+  hasStrongEventIndicators,
+  hasStrongTaskIndicators,
+  isUncertainType
+} from '@/utils/text';
 
 async function transcribeAudio(audioBlob: Blob): Promise<string> {
   // Keep original WebM format
@@ -146,34 +154,175 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Process thought with AI
-    const aiResult = await categorizeThought(content, modelId);
+    // Split content into segments using improved segmentation
+    let segments: string[];
+    
+    if (contentType.includes('multipart/form-data')) {
+      // For voice input, transcribe then split
+      const transcription = await transcribeAudio(rawAudio!);
+      segments = splitIntoThoughts(transcription);
+      console.log('Voice segments:', segments);
+    } else {
+      // For text input, split each line then further split by context
+      const lines = content.split('\n').filter(line => line.trim());
+      segments = lines.flatMap(line => splitIntoThoughts(line));
+      console.log('Text segments:', segments);
+    }
 
+    // Process each segment with improved categorization
     const thoughts = await getCollection('thoughts');
+    const results = [];
+    const batchId = new ObjectId(); // Group thoughts from same input
 
-    const thought = {
-      content,
-      inputType: type,
-      rawAudio: rawAudio ? true : undefined,
-      thoughtType: aiResult.thoughtType,
-      processedContent: aiResult.processedContent,
-      status: 'pending',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      syncStatus: {},
-      metadata: {}
-    };
+    for (const segment of segments) {
+      try {
+        console.log('Processing segment:', segment);
 
-    const result = await thoughts.insertOne(thought);
+        // Check for strong indicators first
+        if (hasStrongEventIndicators(segment)) {
+          const thought = {
+            content: segment,
+            inputType: type,
+            rawAudio: rawAudio ? true : undefined,
+            thoughtType: 'event',
+            confidence: 'high' as const,
+            processedContent: {
+              title: segment,
+              eventDate: segment.match(/tomorrow|today|tonight|\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\b/i)?.[0],
+              eventTime: segment.match(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM)\b/)?.[0]
+            },
+            status: 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            syncStatus: {},
+            metadata: {
+              source: contentType.includes('multipart/form-data') ? 'voice' : 'text',
+              batchId
+            }
+          };
+
+          const result = await thoughts.insertOne(thought);
+          results.push({
+            id: result.insertedId,
+            ...thought,
+            tokenUsage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+            cost: 0
+          });
+          continue;
+        }
+
+        if (hasStrongTaskIndicators(segment)) {
+          const thought = {
+            content: segment,
+            inputType: type,
+            rawAudio: rawAudio ? true : undefined,
+            thoughtType: 'task',
+            confidence: 'high' as const,
+            processedContent: {
+              title: segment,
+              priority: segment.match(/\b(?:urgent|asap|important)\b/i) ? 'high' : 'medium'
+            },
+            status: 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            syncStatus: {},
+            metadata: {
+              source: contentType.includes('multipart/form-data') ? 'voice' : 'text',
+              batchId
+            }
+          };
+
+          const result = await thoughts.insertOne(thought);
+          results.push({
+            id: result.insertedId,
+            ...thought,
+            tokenUsage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+            cost: 0
+          });
+          continue;
+        }
+
+        // If no strong indicators, check for uncertainty
+        if (isUncertainType(segment)) {
+          console.log('Segment has both task and event indicators:', segment);
+          const thought = {
+            content: segment,
+            inputType: type,
+            rawAudio: rawAudio ? true : undefined,
+            thoughtType: 'uncertain',
+            confidence: 'low' as const,
+            possibleTypes: ['task', 'event'],
+            processedContent: {
+              title: segment,
+              suggestedDate: hasEventIndicators(segment) ? segment : undefined,
+              suggestedAction: hasTaskIndicators(segment) ? segment : undefined
+            },
+            status: 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            syncStatus: {},
+            metadata: {
+              source: contentType.includes('multipart/form-data') ? 'voice' : 'text',
+              batchId
+            }
+          };
+
+          const result = await thoughts.insertOne(thought);
+          results.push({
+            id: result.insertedId,
+            ...thought,
+            tokenUsage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+            cost: 0
+          });
+          continue;
+        }
+
+        // If not uncertain, proceed with AI categorization
+        const aiResult = await categorizeThought(segment, modelId);
+        console.log('Segment categorized:', {
+          type: aiResult.thoughtType,
+          confidence: aiResult.confidence,
+          title: aiResult.processedContent.title
+        });
+
+        const thought = {
+          content: segment,
+          inputType: type,
+          rawAudio: rawAudio ? true : undefined,
+          thoughtType: aiResult.thoughtType,
+          confidence: aiResult.confidence,
+          possibleTypes: aiResult.possibleTypes,
+          processedContent: aiResult.processedContent,
+          status: 'pending',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          syncStatus: {},
+          metadata: {
+            categorization: aiResult.thoughtType === 'note' && !aiResult.tokenUsage.total_tokens ? 'fallback' : 'ai',
+            source: contentType.includes('multipart/form-data') ? 'voice' : 'text',
+            batchId
+          }
+        };
+
+        const result = await thoughts.insertOne(thought);
+        results.push({
+          id: result.insertedId,
+          ...thought,
+          tokenUsage: aiResult.tokenUsage,
+          cost: aiResult.cost
+        });
+      } catch (error) {
+        console.error('Error processing segment:', error);
+        // Continue with other segments even if one fails
+      }
+    }
 
     return NextResponse.json({
       status: 'success',
-      message: 'Thought captured and categorized successfully',
+      message: `${results.length} thoughts captured and categorized successfully`,
       data: {
-        id: result.insertedId,
-        ...thought,
-        tokenUsage: aiResult.tokenUsage,
-        cost: aiResult.cost
+        transcribedText: content,
+        items: results
       }
     });
   } catch (error) {
