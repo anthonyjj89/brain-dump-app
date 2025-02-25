@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import ProcessingStatus from './ProcessingStatus';
+import MicrophoneSelector from './MicrophoneSelector';
 
 interface AudioVisualizerProps {
   state: 'idle' | 'recording' | 'processing';
@@ -75,6 +76,7 @@ export default function ThoughtForm() {
   const [foundItems, setFoundItems] = useState<Array<{ type: 'task' | 'event' | 'note'; text: string }>>([]);
   const [error, setError] = useState<string | null>(null);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [selectedMicrophoneId, setSelectedMicrophoneId] = useState<string>('');
   
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
@@ -84,6 +86,12 @@ export default function ThoughtForm() {
   const animationFrame = useRef<number>();
 
   useEffect(() => {
+    // Load saved microphone preference from localStorage
+    const savedMicrophoneId = localStorage.getItem('selectedMicrophoneId');
+    if (savedMicrophoneId) {
+      setSelectedMicrophoneId(savedMicrophoneId);
+    }
+    
     return () => {
       if (animationFrame.current) {
         cancelAnimationFrame(animationFrame.current);
@@ -93,6 +101,12 @@ export default function ThoughtForm() {
       }
     };
   }, []);
+  
+  // Handle microphone selection
+  const handleMicrophoneSelected = (deviceId: string) => {
+    setSelectedMicrophoneId(deviceId);
+    localStorage.setItem('selectedMicrophoneId', deviceId);
+  };
 
   const updateVolume = () => {
     if (!analyzer.current || !dataArray.current) return;
@@ -107,7 +121,11 @@ export default function ThoughtForm() {
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          deviceId: selectedMicrophoneId ? { exact: selectedMicrophoneId } : undefined
+        } 
+      });
       
       // Set up audio context and analyzer
       audioContext.current = new AudioContext();
@@ -190,11 +208,11 @@ export default function ThoughtForm() {
         }
       };
 
-      mediaRecorder.current.onstop = async (event) => {
-        console.log('MediaRecorder stopped:', event);
+      mediaRecorder.current.onstop = async () => {
+        console.log('MediaRecorder stopped');
         setRecordingState('processing');
         setError(null);
-        const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunks.current, { type: mimeType });
         
         // Check audio blob size
         if (audioBlob.size === 0) {
@@ -395,6 +413,13 @@ export default function ThoughtForm() {
     <div className="flex flex-col items-center max-w-[600px] mx-auto">
       {/* Voice Input */}
       <div className="w-full">
+        <div className="flex justify-between items-center mb-4">
+          <MicrophoneSelector 
+            onDeviceSelected={handleMicrophoneSelected}
+            selectedDeviceId={selectedMicrophoneId}
+          />
+        </div>
+        
         <button
           onClick={recordingState === 'recording' ? stopRecording : startRecording}
           disabled={recordingState === 'processing'}

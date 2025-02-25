@@ -34,6 +34,14 @@ We are currently working on improving the app's natural language processing capa
 - ✅ Enhanced browser compatibility
 - ✅ Fixed experimental warning in Node.js 22.x by avoiding File constructor completely
 
+### 0.1. Microphone Selection Issue (FIXED)
+~~Issue: Opera browser only capturing "you" in voice recordings~~
+- ✅ Added microphone selection functionality
+- ✅ Created MicrophoneSelector component with device enumeration
+- ✅ Implemented microphone testing with volume meter
+- ✅ Added localStorage persistence for selected microphone
+- ✅ Fixed Opera-specific audio capture issues
+
 ### 1. Task Detection Problems
 Example input: "I need to drink water, I need to tidy the plate, I need to brush the dog, I need to brush the cat"
 Current behavior:

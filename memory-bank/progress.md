@@ -13,6 +13,8 @@
 ✅ Entity extraction (people, locations)
 ✅ Time and date handling
 ✅ Thought deduplication
+✅ Microphone selection with device enumeration
+✅ Browser-specific audio handling
 
 ### What Needs Improvement
 ⚠️ Task detection accuracy (improved but still needs work)
@@ -133,6 +135,9 @@
 - Improved time and date handling
 - Added thought deduplication
 - Integrated NLP service with stream processing
+- Added microphone selection component with device enumeration
+- Implemented microphone testing with volume meter
+- Fixed Opera-specific audio capture issues
 
 ### Next Week
 - Complete Phase 1 testing
