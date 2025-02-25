@@ -3,6 +3,7 @@ interface Meeting {
   time: string;
   person: string;
   date?: string;
+  location?: string;
 }
 
 /**
@@ -121,6 +122,10 @@ export function extractMeetings(text: string): Meeting[] {
     // Extract person names
     const personMatches = segment.match(/\b(?:with\s+)(\w+)(?:\s|$)/i);
     const person = personMatches ? personMatches[1] : undefined;
+    
+    // Extract location
+    const locationMatches = segment.match(/\b(?:at|in)\s+(?:the\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b(?!\s+(?:am|pm))/i);
+    const location = locationMatches ? locationMatches[1] : undefined;
 
     // If we have both time and person, it's likely a meeting
     if (times.length > 0 && person) {
@@ -129,7 +134,8 @@ export function extractMeetings(text: string): Meeting[] {
           context: segment.trim(),
           time,
           person,
-          date: lastDate
+          date: lastDate,
+          location
         });
       });
       continue;
@@ -142,7 +148,8 @@ export function extractMeetings(text: string): Meeting[] {
         context: segment.trim(),
         time: time || '',
         person: person || '',
-        date: lastDate
+        date: lastDate,
+        location
       });
     }
   }

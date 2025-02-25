@@ -52,6 +52,7 @@ export async function POST(request: Request) {
         const formData = await request.formData();
         const audio = formData.get('audio');
         type = formData.get('type') as string || 'complete';
+        const browser = formData.get('browser') as string || 'unknown';
         
         // Log detailed information about the audio object
         console.log('Request details:', {
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
           audioSize: audio ? (audio instanceof Blob ? (audio as Blob).size : 'not a Blob') : 0,
           audioConstructor: audio ? audio.constructor.name : 'none',
           requestType: type,
+          browser,
           environment: process.env.NODE_ENV,
           isVercel: !!process.env.VERCEL
         });
@@ -186,6 +188,8 @@ export async function POST(request: Request) {
                   const meetings = extractMeetings(segment);
                   if (meetings.length > 0) {
                     return Promise.all(meetings.map(async meeting => {
+                      const formattedTime = meeting.time ? formatTime(meeting.time) : undefined;
+                      
                       const thought = {
                         content: segment,
                         inputType: 'voice',
@@ -194,9 +198,13 @@ export async function POST(request: Request) {
                         confidence: 'high',
                         processedContent: {
                           title: `Meeting${meeting.person ? ` with ${meeting.person}` : ''}`,
-                          time: meeting.time ? formatTime(meeting.time) : undefined,
+                          // Store fields using both naming conventions for compatibility
+                          time: formattedTime,
                           date: meeting.date,
-                          person: meeting.person || '-'
+                          eventTime: formattedTime,
+                          eventDate: meeting.date,
+                          person: meeting.person || '-',
+                          location: meeting.location
                         },
                         status: 'pending',
                         createdAt: new Date(),

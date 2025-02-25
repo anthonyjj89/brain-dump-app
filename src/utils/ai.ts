@@ -121,16 +121,31 @@ export async function transcribeAudio(audio: Blob): Promise<string> {
     // Create FormData and append audio file with explicit filename and type
     const formData = new FormData();
     
+    // Determine the best file extension and type based on the blob's type
+    const fileExtension = audio.type.includes('mp4') ? 'mp4' : 
+                         audio.type.includes('ogg') ? 'ogg' : 
+                         'webm';
+    
+    const fileType = audio.type || 'audio/webm';
+    
     // In Vercel environment, we need to be more explicit about the file
     const audioFile = new File(
       [audio], 
-      'audio.webm', 
-      { type: 'audio/webm' }
+      `audio.${fileExtension}`, 
+      { type: fileType }
     );
+    
+    console.log('Creating audio file for Whisper API:', {
+      name: audioFile.name,
+      type: audioFile.type,
+      size: audioFile.size,
+      lastModified: new Date(audioFile.lastModified).toISOString()
+    });
     
     formData.append('file', audioFile);
     formData.append('model', 'whisper-1');
     formData.append('response_format', 'text');
+    formData.append('language', 'en'); // Explicitly set language to English
 
     console.log('Calling Whisper API with file details:', {
       fileName: 'audio.webm',

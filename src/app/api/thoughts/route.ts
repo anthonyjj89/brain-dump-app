@@ -180,6 +180,12 @@ export async function POST(request: NextRequest) {
 
         // Check for strong indicators first
         if (hasStrongEventIndicators(segment)) {
+          // Extract date, time, and person information
+          const dateMatch = segment.match(/tomorrow|today|tonight|\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\b/i)?.[0];
+          const timeMatch = segment.match(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM)\b/)?.[0];
+          const personMatch = segment.match(/\b(?:with|meet|meeting)\s+(\w+)\b/i)?.[1];
+          const locationMatch = segment.match(/\b(?:at|in)\s+(?:the\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b(?!\s+(?:am|pm))/i)?.[1];
+          
           const thought = {
             content: segment,
             inputType: type,
@@ -188,8 +194,13 @@ export async function POST(request: NextRequest) {
             confidence: 'high' as const,
             processedContent: {
               title: segment,
-              eventDate: segment.match(/tomorrow|today|tonight|\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\b/i)?.[0],
-              eventTime: segment.match(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm|AM|PM)\b/)?.[0]
+              // Store fields using both naming conventions for compatibility
+              eventDate: dateMatch,
+              eventTime: timeMatch,
+              date: dateMatch,
+              time: timeMatch,
+              location: locationMatch,
+              person: personMatch
             },
             status: 'pending',
             createdAt: new Date(),

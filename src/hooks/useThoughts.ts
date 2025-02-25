@@ -8,13 +8,20 @@ interface Thought {
   possibleTypes?: Array<'task' | 'event' | 'note'>;
   processedContent: {
     title?: string;
+    // Task fields
     dueDate?: string;
     priority?: string;
+    // Event fields - support both naming conventions
     eventDate?: string;
     eventTime?: string;
+    date?: string;
+    time?: string;
     location?: string;
+    person?: string;
+    // Note fields
     details?: string;
     tags?: string[];
+    // Uncertain fields
     suggestedDate?: string;
     suggestedAction?: string;
   };

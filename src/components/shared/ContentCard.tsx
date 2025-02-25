@@ -8,13 +8,20 @@ interface ContentCardProps {
     status: 'pending' | 'approved' | 'rejected';
     processedContent: {
       title?: string;
+      // Task fields
       dueDate?: string;
       priority?: string;
+      // Event fields - support both naming conventions
       eventDate?: string;
       eventTime?: string;
+      date?: string;
+      time?: string;
       location?: string;
+      person?: string;
+      // Note fields
       details?: string;
       tags?: string[];
+      // Uncertain fields
       suggestedDate?: string;
       suggestedAction?: string;
     };
@@ -125,14 +132,23 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
 
         {thought.thoughtType === 'event' && (
           <>
-            {thought.processedContent.eventDate && (
-              <div className="text-green-400">Date: {thought.processedContent.eventDate}</div>
+            {/* Support both field naming conventions for backward compatibility */}
+            {(thought.processedContent.eventDate || thought.processedContent.date) && (
+              <div className="text-green-400">
+                Date: {thought.processedContent.eventDate || thought.processedContent.date}
+              </div>
             )}
-            {thought.processedContent.eventTime && (
-              <div className="text-green-400">Time: {thought.processedContent.eventTime}</div>
+            {(thought.processedContent.eventTime || thought.processedContent.time) && (
+              <div className="text-green-400">
+                Time: {thought.processedContent.eventTime || thought.processedContent.time}
+              </div>
             )}
-            {thought.processedContent.location && (
+            {(thought.processedContent.location) && (
               <div className="text-green-400">Location: {thought.processedContent.location}</div>
+            )}
+            {/* Add support for person field */}
+            {(thought.processedContent.person) && (
+              <div className="text-green-400">With: {thought.processedContent.person}</div>
             )}
           </>
         )}

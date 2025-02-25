@@ -121,24 +121,52 @@ export default function ThoughtForm() {
       // Start volume monitoring
       updateVolume();
 
-      // Check supported MIME types
+      // Detect browser
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isIOS = /iphone|ipad|ipod/.test(userAgent);
+      const isOpera = /opera|opr/.test(userAgent);
+      const isChrome = /chrome/.test(userAgent) && !isOpera;
+      const isSafari = /safari/.test(userAgent) && !isChrome;
+      
+      console.log('Browser detection:', { isIOS, isOpera, isChrome, isSafari });
+      
+      // Get supported MIME types based on browser
       const getMimeType = () => {
+        // Try browser-specific preferred formats first
+        if (isIOS) {
+          if (MediaRecorder.isTypeSupported('audio/mp4')) return 'audio/mp4';
+        } else if (isOpera) {
+          if (MediaRecorder.isTypeSupported('audio/ogg')) return 'audio/ogg';
+        } else if (isChrome || isSafari) {
+          if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) return 'audio/webm;codecs=opus';
+        }
+        
+        // Fall back to checking general support
         const types = [
           'audio/webm',
           'audio/mp4',
           'audio/ogg',
           'audio/wav'
         ];
+        
         const supported = types.find(type => MediaRecorder.isTypeSupported(type));
         console.log('Supported MIME type:', supported);
         return supported || 'audio/webm';
       };
 
-      // Set up media recorder with timeslice for streaming
+      // Set up media recorder with browser-specific settings
       const mimeType = getMimeType();
-      console.log('Initializing MediaRecorder with MIME type:', mimeType);
+      const audioBitsPerSecond = isIOS ? 64000 : 128000;
+      
+      console.log('Initializing MediaRecorder with:', {
+        mimeType,
+        audioBitsPerSecond,
+        browser: isIOS ? 'iOS' : isOpera ? 'Opera' : isChrome ? 'Chrome' : isSafari ? 'Safari' : 'Other'
+      });
+      
       mediaRecorder.current = new MediaRecorder(stream, {
         mimeType,
+        audioBitsPerSecond
       });
 
       // Add error handler
@@ -182,10 +210,31 @@ export default function ThoughtForm() {
         });
         setIsTranscribing(true);
         
+        // Create a more compatible audio blob based on browser
+        let processedBlob = audioBlob;
+        
+        // For iOS, ensure we're using a compatible format
+        if (isIOS && audioBlob.type !== 'audio/mp4' && MediaRecorder.isTypeSupported('audio/mp4')) {
+          try {
+            // Try to convert to MP4 format for iOS
+            const arrayBuffer = await audioBlob.arrayBuffer();
+            processedBlob = new Blob([arrayBuffer], { type: 'audio/mp4' });
+            console.log('Converted blob for iOS compatibility:', {
+              originalType: audioBlob.type,
+              newType: processedBlob.type,
+              size: processedBlob.size
+            });
+          } catch (error) {
+            console.warn('Failed to convert audio format for iOS:', error);
+            // Continue with original blob
+          }
+        }
+        
         // Send final audio for complete processing
         const formData = new FormData();
-        formData.append('audio', audioBlob);
+        formData.append('audio', processedBlob);
         formData.append('type', 'complete');
+        formData.append('browser', isIOS ? 'ios' : isOpera ? 'opera' : isChrome ? 'chrome' : isSafari ? 'safari' : 'other');
         
         try {
           console.log('Sending audio to API...');

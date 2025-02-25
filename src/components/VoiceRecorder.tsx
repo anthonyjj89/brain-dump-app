@@ -42,17 +42,54 @@ export default function VoiceRecorder({ onRecordingComplete, isProcessing, onErr
       analyserRef.current.fftSize = 256;
       const bufferLength = analyserRef.current.frequencyBinCount;
       
-      // Get supported MIME types
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
+      // Detect browser
+      const userAgent = navigator.userAgent.toLowerCase();
+      const isIOS = /iphone|ipad|ipod/.test(userAgent);
+      const isOpera = /opera|opr/.test(userAgent);
+      const isChrome = /chrome/.test(userAgent) && !isOpera;
+      const isSafari = /safari/.test(userAgent) && !isChrome;
+      
+      console.log('Browser detection:', { isIOS, isOpera, isChrome, isSafari });
+      
+      // Get supported MIME types based on browser
+      let mimeType = 'audio/webm';
+      
+      if (isIOS) {
+        // iOS Safari prefers MP4
+        mimeType = MediaRecorder.isTypeSupported('audio/mp4') 
+          ? 'audio/mp4' 
+          : 'audio/webm';
+      } else if (isOpera) {
+        // Opera has better support for Ogg
+        mimeType = MediaRecorder.isTypeSupported('audio/ogg') 
+          ? 'audio/ogg' 
+          : 'audio/webm';
+      } else {
+        // For Chrome and other browsers, try opus codec first
+        mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+          ? 'audio/webm;codecs=opus'
+          : MediaRecorder.isTypeSupported('audio/webm')
+            ? 'audio/webm'
+            : MediaRecorder.isTypeSupported('audio/ogg')
+              ? 'audio/ogg'
+              : 'audio/webm';
+      }
 
       console.log('Using MIME type:', mimeType);
 
-      // Start recording
+      // Configure audio settings based on browser
+      const audioBitsPerSecond = isIOS ? 64000 : 128000;
+      
+      // Start recording with browser-specific settings
       mediaRecorderRef.current = new MediaRecorder(stream, {
         mimeType,
-        audioBitsPerSecond: 128000
+        audioBitsPerSecond
+      });
+      
+      console.log('MediaRecorder initialized with:', {
+        mimeType,
+        audioBitsPerSecond,
+        browser: isIOS ? 'iOS' : isOpera ? 'Opera' : isChrome ? 'Chrome' : isSafari ? 'Safari' : 'Other'
       });
       chunksRef.current = [];
       
