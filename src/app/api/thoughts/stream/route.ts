@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { transcribeAudio, categorizeThought } from '@/utils/ai';
+import { getCollection } from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
+import { NLPService } from '@/services/nlp';
 
 // Validate required environment variables and MongoDB connection
 const validateSetup = async () => {
@@ -18,144 +21,134 @@ const validateSetup = async () => {
     throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
   }
 
-    // Test MongoDB connection
-    try {
-      const collection = await getCollection('thoughts');
-      await collection.findOne({}); // Light operation to test connection
-      console.log('MongoDB connection validated');
-    } catch (error) {
-      console.error('MongoDB connection error:', error);
-      throw new Error('Failed to connect to MongoDB');
-    }
+  // Test MongoDB connection
+  try {
+    const collection = await getCollection('thoughts');
+    await collection.findOne({}); // Light operation to test connection
+    console.log('MongoDB connection validated');
+  } catch (error) {
+    console.error('MongoDB connection error:', error);
+    throw new Error('Failed to connect to MongoDB');
+  }
 };
-import { 
-  splitIntoThoughts, 
-  hasStrongEventIndicators, 
-  hasStrongTaskIndicators,
-  formatTime,
-  extractDate,
-  extractMeetings
-} from '@/utils/text';
-import { getCollection } from '@/lib/mongodb';
-import { ObjectId } from 'mongodb';
 
 export async function POST(request: Request) {
   try {
     // Validate setup before processing
     await validateSetup();
-      console.log('Voice processing request received');
+    console.log('Voice processing request received');
+    
+    let audioBlob: Blob;
+    let type: string = 'complete'; // Default value
+    
+    try {
+      const formData = await request.formData();
+      const audio = formData.get('audio');
+      type = formData.get('type') as string || 'complete';
+      const browser = formData.get('browser') as string || 'unknown';
       
-      let audioBlob: Blob;
-      let type: string = 'complete'; // Default value
-      
-      try {
-        const formData = await request.formData();
-        const audio = formData.get('audio');
-        type = formData.get('type') as string || 'complete';
-        const browser = formData.get('browser') as string || 'unknown';
-        
-        // Log detailed information about the audio object
-        console.log('Request details:', {
-          audioExists: !!audio,
-          audioType: audio ? (audio as any).type : 'unknown',
-          audioSize: audio ? (audio instanceof Blob ? (audio as Blob).size : 'not a Blob') : 0,
-          audioConstructor: audio ? audio.constructor.name : 'none',
-          requestType: type,
-          browser,
-          environment: process.env.NODE_ENV,
-          isVercel: !!process.env.VERCEL
-        });
+      // Log detailed information about the audio object
+      console.log('Request details:', {
+        audioExists: !!audio,
+        audioType: audio ? (audio as any).type : 'unknown',
+        audioSize: audio ? (audio instanceof Blob ? (audio as Blob).size : 'not a Blob') : 0,
+        audioConstructor: audio ? audio.constructor.name : 'none',
+        requestType: type,
+        browser,
+        environment: process.env.NODE_ENV,
+        isVercel: !!process.env.VERCEL
+      });
 
-        // Validate audio data
-        if (!audio) {
-          console.error('No audio data provided');
-          return NextResponse.json(
-            { error: 'No audio data provided' },
-            { status: 400 }
-          );
-        }
-        
-        // Get additional metadata from form data
-        const audioSize = formData.get('audioSize');
-        const audioType = formData.get('audioType');
-        const timestamp = formData.get('timestamp');
-        
-        console.log('Additional metadata:', {
-          audioSize,
-          audioType,
-          timestamp,
-          browser
-        });
-        
-        // Ensure we have a proper Blob to work with
-        if (audio instanceof Blob) {
-          console.log('Audio is a Blob instance');
-          audioBlob = audio;
-        } else if (typeof audio === 'object' && audio !== null) {
-          console.log('Audio is an object, attempting to convert to Blob');
-          
-          // Check if it has arrayBuffer method
-          if ('arrayBuffer' in audio) {
-            try {
-              console.log('Converting using arrayBuffer method');
-              const buffer = await (audio as any).arrayBuffer();
-              const blobType = audioType as string || 'audio/webm';
-              audioBlob = new Blob([buffer], { type: blobType });
-              console.log('Created blob from arrayBuffer:', { 
-                size: audioBlob.size,
-                type: audioBlob.type
-              });
-            } catch (error) {
-              console.error('Error converting to Blob using arrayBuffer:', error);
-              return NextResponse.json(
-                { error: 'Failed to process audio data: arrayBuffer conversion failed' },
-                { status: 400 }
-              );
-            }
-          } else {
-            // Try to convert directly
-            try {
-              console.log('Attempting direct Blob conversion');
-              const blobType = audioType as string || 'audio/webm';
-              audioBlob = new Blob([audio as any], { type: blobType });
-              console.log('Created blob directly:', { 
-                size: audioBlob.size,
-                type: audioBlob.type
-              });
-            } catch (error) {
-              console.error('Error converting to Blob directly:', error);
-              return NextResponse.json(
-                { error: 'Failed to process audio data: direct conversion failed' },
-                { status: 400 }
-              );
-            }
-          }
-        } else {
-          console.error('Unsupported audio format:', { 
-            audioType: typeof audio,
-            audioValue: audio
-          });
-          return NextResponse.json(
-            { error: 'Unsupported audio format' },
-            { status: 400 }
-          );
-        }
-        
-        // Final validation
-        if (audioBlob.size === 0) {
-          console.error('Empty audio blob');
-          return NextResponse.json(
-            { error: 'Empty audio data' },
-            { status: 400 }
-          );
-        }
-      } catch (error) {
-        console.error('Error processing audio data:', error);
+      // Validate audio data
+      if (!audio) {
+        console.error('No audio data provided');
         return NextResponse.json(
-          { error: 'Failed to process audio data' },
+          { error: 'No audio data provided' },
           { status: 400 }
         );
       }
+      
+      // Get additional metadata from form data
+      const audioSize = formData.get('audioSize');
+      const audioType = formData.get('audioType');
+      const timestamp = formData.get('timestamp');
+      
+      console.log('Additional metadata:', {
+        audioSize,
+        audioType,
+        timestamp,
+        browser
+      });
+      
+      // Ensure we have a proper Blob to work with
+      if (audio instanceof Blob) {
+        console.log('Audio is a Blob instance');
+        audioBlob = audio;
+      } else if (typeof audio === 'object' && audio !== null) {
+        console.log('Audio is an object, attempting to convert to Blob');
+        
+        // Check if it has arrayBuffer method
+        if ('arrayBuffer' in audio) {
+          try {
+            console.log('Converting using arrayBuffer method');
+            const buffer = await (audio as any).arrayBuffer();
+            const blobType = audioType as string || 'audio/webm';
+            audioBlob = new Blob([buffer], { type: blobType });
+            console.log('Created blob from arrayBuffer:', { 
+              size: audioBlob.size,
+              type: audioBlob.type
+            });
+          } catch (error) {
+            console.error('Error converting to Blob using arrayBuffer:', error);
+            return NextResponse.json(
+              { error: 'Failed to process audio data: arrayBuffer conversion failed' },
+              { status: 400 }
+            );
+          }
+        } else {
+          // Try to convert directly
+          try {
+            console.log('Attempting direct Blob conversion');
+            const blobType = audioType as string || 'audio/webm';
+            audioBlob = new Blob([audio as any], { type: blobType });
+            console.log('Created blob directly:', { 
+              size: audioBlob.size,
+              type: audioBlob.type
+            });
+          } catch (error) {
+            console.error('Error converting to Blob directly:', error);
+            return NextResponse.json(
+              { error: 'Failed to process audio data: direct conversion failed' },
+              { status: 400 }
+            );
+          }
+        }
+      } else {
+        console.error('Unsupported audio format:', { 
+          audioType: typeof audio,
+          audioValue: audio
+        });
+        return NextResponse.json(
+          { error: 'Unsupported audio format' },
+          { status: 400 }
+        );
+      }
+      
+      // Final validation
+      if (audioBlob.size === 0) {
+        console.error('Empty audio blob');
+        return NextResponse.json(
+          { error: 'Empty audio data' },
+          { status: 400 }
+        );
+      }
+    } catch (error) {
+      console.error('Error processing audio data:', error);
+      return NextResponse.json(
+        { error: 'Failed to process audio data' },
+        { status: 400 }
+      );
+    }
 
     // Create stream for sending updates
     const encoder = new TextEncoder();
@@ -200,117 +193,48 @@ export async function POST(request: Request) {
           sendEvent('transcription', { text: transcription });
 
           if (type === 'complete') {
-            // Process segments
-            console.log('Processing segments...');
+            // Process the transcription using the NLP service
+            console.log('Processing transcription with NLP service...');
             const startTime = Date.now();
-            const segments = splitIntoThoughts(transcription);
-            if (segments.length === 0) {
-              throw new Error('No segments found in transcription');
+            
+            // Initialize the NLP service
+            const nlpService = new NLPService();
+            
+            // Process the transcription
+            const processingResult = await nlpService.process(transcription);
+            
+            if (processingResult.thoughts.length === 0) {
+              throw new Error('No thoughts extracted from transcription');
             }
+            
+            // Extract the sentences for client-side display
+            const sentences = transcription
+              .split(/(?<=[.!?])\s+/)
+              .filter(s => s.trim().length > 0);
+            
             console.log('Segments extracted:', {
-              count: segments.length,
-              segments: segments.map(s => s.substring(0, 50))
+              count: sentences.length,
+              segments: sentences.map(s => s.substring(0, 50))
             });
-            sendEvent('segments', { segments });
-
-            // Process thoughts (categorization)
-            console.log('Categorizing thoughts...', {
-              segmentCount: segments.length,
-              processingTime: `${Date.now() - startTime}ms`
-            });
+            sendEvent('segments', { segments: sentences });
+            
+            // Save thoughts to database
             console.log('Getting MongoDB collection...');
             const thoughtsCollection = await getCollection('thoughts');
             console.log('MongoDB collection ready');
             const batchId = new ObjectId(); // Group thoughts from same input
             
-            const thoughts = await Promise.all(
-              segments.map(async segment => {
+            // Save each thought to the database
+            const savedThoughts = await Promise.all(
+              processingResult.thoughts.map(async thought => {
                 try {
-                  // First check for meetings
-                  const meetings = extractMeetings(segment);
-                  if (meetings.length > 0) {
-                    return Promise.all(meetings.map(async meeting => {
-                      const formattedTime = meeting.time ? formatTime(meeting.time) : undefined;
-                      
-                      const thought = {
-                        content: segment,
-                        inputType: 'voice',
-                        rawAudio: true,
-                        thoughtType: 'event',
-                        confidence: 'high',
-                        processedContent: {
-                          title: `Meeting${meeting.person ? ` with ${meeting.person}` : ''}`,
-                          // Store fields using both naming conventions for compatibility
-                          time: formattedTime,
-                          date: meeting.date,
-                          eventTime: formattedTime,
-                          eventDate: meeting.date,
-                          person: meeting.person || '-',
-                          location: meeting.location
-                        },
-                        status: 'pending',
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                        syncStatus: {},
-                        metadata: {
-                          source: 'voice',
-                          batchId,
-                          categorization: 'rule-based'
-                        }
-                      };
-
-                      const savedThought = await thoughtsCollection.insertOne(thought);
-                      return {
-                        id: savedThought.insertedId,
-                        type: 'event',
-                        text: segment,
-                        metadata: thought.processedContent
-                      };
-                    }));
-                  }
-
-                  // If not a meeting, check for task indicators
-                  if (hasStrongTaskIndicators(segment)) {
-                    const thought = {
-                      content: segment,
-                      inputType: 'voice',
-                      rawAudio: true,
-                      thoughtType: 'task',
-                      confidence: 'high',
-                      processedContent: {
-                        title: segment,
-                        priority: segment.match(/\b(?:urgent|asap|important)\b/i) ? 'high' : 'medium'
-                      },
-                      status: 'pending',
-                      createdAt: new Date(),
-                      updatedAt: new Date(),
-                      syncStatus: {},
-                      metadata: {
-                        source: 'voice',
-                        batchId,
-                        categorization: 'rule-based'
-                      }
-                    };
-
-                    const savedThought = await thoughtsCollection.insertOne(thought);
-                    return [{
-                      id: savedThought.insertedId,
-                      type: 'task',
-                      text: segment,
-                      metadata: thought.processedContent
-                    }];
-                  }
-
-                  // Use AI for uncertain cases
-                  const result = await categorizeThought(segment);
-                  const thoughtType = result.thoughtType === 'uncertain' ? 'note' : result.thoughtType;
-                  const thought = {
-                    content: segment,
+                  const dbThought = {
+                    content: thought.processedContent.title || transcription,
                     inputType: 'voice',
                     rawAudio: true,
-                    thoughtType,
-                    confidence: result.confidence,
-                    processedContent: result.processedContent,
+                    thoughtType: thought.thoughtType,
+                    confidence: thought.confidence,
+                    processedContent: thought.processedContent,
                     status: 'pending',
                     createdAt: new Date(),
                     updatedAt: new Date(),
@@ -318,63 +242,40 @@ export async function POST(request: Request) {
                     metadata: {
                       source: 'voice',
                       batchId,
-                      categorization: 'ai'
+                      categorization: 'nlp-service',
+                      processingTime: processingResult.metadata.processingTime,
+                      strategy: processingResult.metadata.strategy
                     }
                   };
-
-                  const savedThought = await thoughtsCollection.insertOne(thought);
-                  return [{
+                  
+                  const savedThought = await thoughtsCollection.insertOne(dbThought);
+                  return {
                     id: savedThought.insertedId,
-                    type: thoughtType,
-                    text: segment,
-                    metadata: result.processedContent
-                  }];
+                    type: thought.thoughtType,
+                    text: thought.processedContent.title || '',
+                    metadata: thought.processedContent
+                  };
                 } catch (error) {
-                  console.error('Error processing segment:', error);
-                  // Create fallback thought
-                  const thought = {
-                    content: segment,
-                    inputType: 'voice',
-                    rawAudio: true,
-                    thoughtType: 'note',
-                    confidence: 'low',
-                    processedContent: {
-                      title: segment,
-                      details: segment
-                    },
-                    status: 'pending',
-                    createdAt: new Date(),
-                    updatedAt: new Date(),
-                    syncStatus: {},
-                    metadata: {
-                      source: 'voice',
-                      batchId,
-                      categorization: 'fallback'
-                    }
+                  console.error('Error saving thought:', error);
+                  // Return a minimal object if saving fails
+                  return {
+                    id: new ObjectId(),
+                    type: thought.thoughtType,
+                    text: thought.processedContent.title || '',
+                    metadata: thought.processedContent,
+                    error: 'Failed to save to database'
                   };
-
-                  const savedThought = await thoughtsCollection.insertOne(thought);
-                  return [{
-                    id: savedThought.insertedId,
-                    type: 'note',
-                    text: segment,
-                    metadata: {
-                      title: segment,
-                      details: segment
-                    }
-                  }];
                 }
               })
             );
-
-            // Flatten the array of arrays into a single array of thoughts
-            const flattenedThoughts = thoughts.flat();
+            
             console.log('Thoughts processed:', {
-              count: flattenedThoughts.length,
-              types: flattenedThoughts.map(t => t.type),
+              count: savedThoughts.length,
+              types: savedThoughts.map(t => t.type),
               totalTime: `${Date.now() - startTime}ms`
             });
-            sendEvent('complete', { thoughts: flattenedThoughts });
+            
+            sendEvent('complete', { thoughts: savedThoughts });
           }
 
           controller.close();

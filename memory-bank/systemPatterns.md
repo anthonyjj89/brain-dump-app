@@ -31,21 +31,47 @@ flowchart TD
 - Clear separation from API routes and business logic
 - Modular design for easy testing and maintenance
 
-Example:
+Example (Implemented):
 ```typescript
 // src/services/nlp/index.ts
 export class NLPService {
+  private timeProcessor: TimeProcessor;
+  private entityProcessor: EntityProcessor;
+  
+  constructor(options: NLPServiceOptions = {}) {
+    this.timeProcessor = new TimeProcessor();
+    this.entityProcessor = new EntityProcessor();
+    this.options = {
+      useLLM: options.useLLM ?? true,
+      confidenceThreshold: options.confidenceThreshold ?? 0.7,
+      deduplicateResults: options.deduplicateResults ?? true
+    };
+  }
+  
   async process(text: string): Promise<ProcessingResult> {
-    // 1. Rule-based processing
-    const ruleBasedResult = await this.applyRules(text);
+    // 1. Clean and split text
+    const sentences = this.splitIntoSentences(this.cleanText(text));
     
-    // 2. Check confidence
-    if (ruleBasedResult.confidence === 'high') {
-      return ruleBasedResult;
+    // 2. Process each sentence
+    const thoughts = [];
+    for (const sentence of sentences) {
+      const sentenceThoughts = await this.processSentence(sentence);
+      thoughts.push(...sentenceThoughts);
     }
     
-    // 3. LLM processing for uncertain cases
-    return this.processWithLLM(text);
+    // 3. Deduplicate if needed
+    const finalThoughts = this.options.deduplicateResults 
+      ? this.deduplicateThoughts(thoughts)
+      : thoughts;
+      
+    return {
+      thoughts: finalThoughts,
+      metadata: {
+        processingTime: performance.now() - startTime,
+        strategy: 'nlp-library',
+        confidence: this.calculateOverallConfidence(finalThoughts)
+      }
+    };
   }
 }
 ```
@@ -252,5 +278,34 @@ flowchart TD
 - Performance thresholds
 - Cost thresholds
 
+## NLP Service Architecture
+
+### Components
+```mermaid
+flowchart TD
+    A[NLPService] --> B[TimeProcessor]
+    A --> C[EntityProcessor]
+    A --> D[Deduplication]
+    B --> E[Date Extraction]
+    B --> F[Time Normalization]
+    C --> G[Person Extraction]
+    C --> H[Location Extraction]
+```
+
+### Processing Flow
+```mermaid
+flowchart TD
+    A[Input Text] --> B[Clean Text]
+    B --> C[Split into Sentences]
+    C --> D[Process Each Sentence]
+    D --> E[Extract Time Info]
+    D --> F[Extract Entities]
+    D --> G[Determine Thought Type]
+    G --> H[Create Structured Thought]
+    H --> I[Deduplicate Thoughts]
+    I --> J[Return Result]
+```
+
 ## Revision History
+- 2025-02-25: Updated with NLP service implementation details
 - 2024-02-24: Initial system patterns document created

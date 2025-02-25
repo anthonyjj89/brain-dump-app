@@ -7,6 +7,15 @@ We are currently working on improving the app's natural language processing capa
 3. Metadata extraction and display
 
 ## Recent Changes
+### 2025-02-25: Implemented NLP Service with Compromise.js
+- Created a modular NLP service architecture in `src/services/nlp/`
+- Implemented text processing with regex patterns for better accuracy
+- Added entity extraction for people and locations
+- Improved time and date handling
+- Enhanced thought categorization logic
+- Added deduplication to prevent duplicate thoughts
+- Integrated the NLP service with the stream processing route
+
 ### 2025-02-25: Fixed Voice Processing in Vercel Environment
 - Fixed "File is not defined" error in Vercel serverless environment
 - Updated transcribeAudio function to handle browser vs. server environments
@@ -67,7 +76,7 @@ Key tasks:
 5. ✅ Fix experimental warning in Node.js 22.x by avoiding File constructor completely
 
 ### Phase 1: Rule-Based Processing
-Status: Planning
+Status: Implemented
 ```mermaid
 flowchart TD
     A[Create NLP Service] --> B[Update Text Processing]
@@ -76,10 +85,11 @@ flowchart TD
 ```
 
 Key tasks:
-1. Create `src/services/nlp/index.ts`
-2. Update regex patterns in `text.ts`
-3. Implement deduplication logic
-4. Add comprehensive tests
+1. ✅ Create `src/services/nlp/index.ts`
+2. ✅ Implement entity extraction in `src/services/nlp/entities.ts`
+3. ✅ Improve time processing in `src/services/nlp/time.ts`
+4. ✅ Implement deduplication logic
+5. ⬜ Add comprehensive tests
 
 ### Phase 2: LLM Integration
 Status: Planning
@@ -112,20 +122,20 @@ Key tasks:
 4. Enhance error handling
 
 ## Next Steps
-1. Begin Phase 1 implementation
-   - Set up NLP service structure
-   - Update text processing logic
-   - Add initial tests
+1. Complete Phase 1
+   - Add comprehensive tests for the NLP service
+   - Measure accuracy improvements with real-world examples
+   - Refine regex patterns based on test results
 
-2. Review and refine
-   - Test with example inputs
-   - Measure accuracy improvements
-   - Gather feedback
+2. Proceed to Phase 2
+   - Update LLM integration to work with the new NLP service
+   - Implement processing pipeline with confidence scoring
+   - Add validation and metrics
 
-3. Proceed to Phase 2
-   - Update LLM integration
-   - Implement new pipeline
-   - Add monitoring
+3. Begin Phase 3
+   - Update UI components to show better processing feedback
+   - Improve metadata display
+   - Enhance error handling
 
 ## Dependencies
 1. Phase 1 → Phase 2
@@ -170,5 +180,5 @@ Target metrics:
    - Deduplication logic
 
 ## Revision History
-- 2025-02-25: Updated with voice processing fixes for Vercel environment and Node.js 22.x
+- 2025-02-25: Updated with NLP service implementation and voice processing fixes
 - 2024-02-24: Initial active context document created
