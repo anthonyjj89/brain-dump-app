@@ -127,30 +127,49 @@ export async function transcribeAudio(audio: Blob): Promise<string> {
                          'webm';
     
     const fileType = audio.type || 'audio/webm';
+    const fileName = `audio.${fileExtension}`;
     
-    // In Vercel environment, we need to be more explicit about the file
-    const audioFile = new File(
-      [audio], 
-      `audio.${fileExtension}`, 
-      { type: fileType }
-    );
+    // Check if we're in a browser or server environment
+    const isServerEnvironment = typeof window === 'undefined';
+    const isFileAvailable = typeof File !== 'undefined';
     
-    console.log('Creating audio file for Whisper API:', {
-      name: audioFile.name,
-      type: audioFile.type,
-      size: audioFile.size,
-      lastModified: new Date(audioFile.lastModified).toISOString()
+    console.log('Environment detection:', {
+      isServerEnvironment,
+      isFileAvailable,
+      environment: process.env.NODE_ENV,
+      isVercel: !!process.env.VERCEL
     });
     
-    formData.append('file', audioFile);
+    // Handle file creation differently based on environment
+    if (isFileAvailable) {
+      // Browser environment or environments where File is available
+      try {
+        const audioFile = new File([audio], fileName, { type: fileType });
+        console.log('Created File object for Whisper API:', {
+          name: audioFile.name,
+          type: audioFile.type,
+          size: audioFile.size
+        });
+        formData.append('file', audioFile);
+      } catch (error) {
+        console.warn('Failed to create File object, falling back to Blob:', error);
+        formData.append('file', audio, fileName);
+      }
+    } else {
+      // Server environment where File is not available
+      console.log('File constructor not available, using Blob directly');
+      // In Node.js/Vercel environment, we can append the blob directly with a filename
+      formData.append('file', audio, fileName);
+    }
+    
     formData.append('model', 'whisper-1');
     formData.append('response_format', 'text');
     formData.append('language', 'en'); // Explicitly set language to English
 
     console.log('Calling Whisper API with file details:', {
-      fileName: 'audio.webm',
-      fileType: 'audio/webm',
-      fileSize: audioFile.size
+      fileName,
+      fileType,
+      fileSize: audio.size
     });
     const startTime = Date.now();
 

@@ -75,24 +75,66 @@ export async function POST(request: Request) {
           );
         }
         
+        // Get additional metadata from form data
+        const audioSize = formData.get('audioSize');
+        const audioType = formData.get('audioType');
+        const timestamp = formData.get('timestamp');
+        
+        console.log('Additional metadata:', {
+          audioSize,
+          audioType,
+          timestamp,
+          browser
+        });
+        
         // Ensure we have a proper Blob to work with
         if (audio instanceof Blob) {
+          console.log('Audio is a Blob instance');
           audioBlob = audio;
-        } else if (typeof audio === 'object' && 'arrayBuffer' in audio) {
-          // Handle File or other arrayBuffer-supporting objects
-          try {
-            const buffer = await (audio as any).arrayBuffer();
-            audioBlob = new Blob([buffer], { type: 'audio/webm' });
-            console.log('Created blob from arrayBuffer:', { size: audioBlob.size });
-          } catch (error) {
-            console.error('Error converting to Blob:', error);
-            return NextResponse.json(
-              { error: 'Failed to process audio data' },
-              { status: 400 }
-            );
+        } else if (typeof audio === 'object' && audio !== null) {
+          console.log('Audio is an object, attempting to convert to Blob');
+          
+          // Check if it has arrayBuffer method
+          if ('arrayBuffer' in audio) {
+            try {
+              console.log('Converting using arrayBuffer method');
+              const buffer = await (audio as any).arrayBuffer();
+              const blobType = audioType as string || 'audio/webm';
+              audioBlob = new Blob([buffer], { type: blobType });
+              console.log('Created blob from arrayBuffer:', { 
+                size: audioBlob.size,
+                type: audioBlob.type
+              });
+            } catch (error) {
+              console.error('Error converting to Blob using arrayBuffer:', error);
+              return NextResponse.json(
+                { error: 'Failed to process audio data: arrayBuffer conversion failed' },
+                { status: 400 }
+              );
+            }
+          } else {
+            // Try to convert directly
+            try {
+              console.log('Attempting direct Blob conversion');
+              const blobType = audioType as string || 'audio/webm';
+              audioBlob = new Blob([audio as any], { type: blobType });
+              console.log('Created blob directly:', { 
+                size: audioBlob.size,
+                type: audioBlob.type
+              });
+            } catch (error) {
+              console.error('Error converting to Blob directly:', error);
+              return NextResponse.json(
+                { error: 'Failed to process audio data: direct conversion failed' },
+                { status: 400 }
+              );
+            }
           }
         } else {
-          console.error('Unsupported audio format:', { audioType: typeof audio });
+          console.error('Unsupported audio format:', { 
+            audioType: typeof audio,
+            audioValue: audio
+          });
           return NextResponse.json(
             { error: 'Unsupported audio format' },
             { status: 400 }

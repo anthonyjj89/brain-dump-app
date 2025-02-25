@@ -230,11 +230,33 @@ export default function ThoughtForm() {
           }
         }
         
+        // Log detailed information about the audio blob
+        console.log('Audio blob details before sending:', {
+          type: processedBlob.type,
+          size: processedBlob.size,
+          browser: isIOS ? 'iOS' : isOpera ? 'Opera' : isChrome ? 'Chrome' : isSafari ? 'Safari' : 'Other'
+        });
+        
         // Send final audio for complete processing
         const formData = new FormData();
-        formData.append('audio', processedBlob);
-        formData.append('type', 'complete');
-        formData.append('browser', isIOS ? 'ios' : isOpera ? 'opera' : isChrome ? 'chrome' : isSafari ? 'safari' : 'other');
+        
+        try {
+          // Ensure the blob is properly added to the form data
+          formData.append('audio', processedBlob);
+          formData.append('type', 'complete');
+          formData.append('browser', isIOS ? 'ios' : isOpera ? 'opera' : isChrome ? 'chrome' : isSafari ? 'safari' : 'other');
+          
+          // Add additional metadata to help with debugging
+          formData.append('audioSize', processedBlob.size.toString());
+          formData.append('audioType', processedBlob.type);
+          formData.append('timestamp', new Date().toISOString());
+        } catch (error) {
+          console.error('Error creating form data:', error);
+          setError('Failed to prepare audio data. Please try again.');
+          setRecordingState('idle');
+          setIsTranscribing(false);
+          return;
+        }
         
         try {
           console.log('Sending audio to API...');

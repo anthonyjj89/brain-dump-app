@@ -7,9 +7,21 @@ We are currently working on improving the app's natural language processing capa
 3. Metadata extraction and display
 
 ## Recent Changes
-None - Initial documentation setup
+### 2025-02-25: Fixed Voice Processing in Vercel Environment
+- Fixed "File is not defined" error in Vercel serverless environment
+- Updated transcribeAudio function to handle browser vs. server environments
+- Enhanced error handling and logging in stream processing
+- Improved audio data handling in ThoughtForm component
+- Added browser detection and environment-specific handling
 
 ## Current Issues
+
+### 0. Voice Processing Issues (FIXED)
+~~Issue: Voice recording not working in Vercel production environment~~
+- ✅ Fixed "File is not defined" error in serverless environment
+- ✅ Added environment detection and conditional logic
+- ✅ Improved error handling and logging
+- ✅ Enhanced browser compatibility
 
 ### 1. Task Detection Problems
 Example input: "I need to drink water, I need to tidy the plate, I need to brush the dog, I need to brush the cat"
@@ -34,6 +46,21 @@ Current problems:
 - No progress indicators
 
 ## Immediate Tasks
+
+### Phase 0: Voice Processing Fixes (COMPLETED)
+Status: Completed
+```mermaid
+flowchart TD
+    A[Fix File Constructor] --> B[Add Environment Detection]
+    B --> C[Improve Error Handling]
+    C --> D[Enhance Browser Compatibility]
+```
+
+Key tasks:
+1. ✅ Update transcribeAudio function to avoid using File constructor in server environment
+2. ✅ Add environment detection for browser vs. server
+3. ✅ Improve error handling and logging
+4. ✅ Enhance browser compatibility for different audio formats
 
 ### Phase 1: Rule-Based Processing
 Status: Planning
@@ -116,21 +143,28 @@ Target metrics:
 - Error rate: < 1%
 
 ## Recent Decisions
-1. Maintain current LLM (Claude-3-Haiku) due to:
+1. Server-side audio processing approach:
+   - Use environment detection to handle browser vs. server differences
+   - Directly append Blob to FormData in server environment
+   - Use File constructor only in browser environment
+   - Add detailed logging for debugging
+
+2. Maintain current LLM (Claude-3-Haiku) due to:
    - Cost effectiveness ($0.0005/1K tokens)
    - Good performance
    - Existing integration
 
-2. Adopt hybrid approach:
+3. Adopt hybrid approach:
    - Rule-based processing first
    - LLM as fallback for uncertain cases
    - Focus on improving prompts
 
-3. Prioritize immediate improvements:
+4. Prioritize immediate improvements:
    - Better regex patterns
    - Enhanced time/date handling
    - Improved person/location detection
    - Deduplication logic
 
 ## Revision History
+- 2025-02-25: Updated with voice processing fixes for Vercel environment
 - 2024-02-24: Initial active context document created
