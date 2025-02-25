@@ -13,6 +13,7 @@ We are currently working on improving the app's natural language processing capa
 - Enhanced error handling and logging in stream processing
 - Improved audio data handling in ThoughtForm component
 - Added browser detection and environment-specific handling
+- Fixed experimental warning in Node.js 22.x by avoiding File constructor completely
 
 ## Current Issues
 
@@ -22,6 +23,7 @@ We are currently working on improving the app's natural language processing capa
 - ✅ Added environment detection and conditional logic
 - ✅ Improved error handling and logging
 - ✅ Enhanced browser compatibility
+- ✅ Fixed experimental warning in Node.js 22.x by avoiding File constructor completely
 
 ### 1. Task Detection Problems
 Example input: "I need to drink water, I need to tidy the plate, I need to brush the dog, I need to brush the cat"
@@ -54,6 +56,7 @@ flowchart TD
     A[Fix File Constructor] --> B[Add Environment Detection]
     B --> C[Improve Error Handling]
     C --> D[Enhance Browser Compatibility]
+    D --> E[Fix Node.js 22.x Warning]
 ```
 
 Key tasks:
@@ -61,6 +64,7 @@ Key tasks:
 2. ✅ Add environment detection for browser vs. server
 3. ✅ Improve error handling and logging
 4. ✅ Enhance browser compatibility for different audio formats
+5. ✅ Fix experimental warning in Node.js 22.x by avoiding File constructor completely
 
 ### Phase 1: Rule-Based Processing
 Status: Planning
@@ -145,8 +149,8 @@ Target metrics:
 ## Recent Decisions
 1. Server-side audio processing approach:
    - Use environment detection to handle browser vs. server differences
-   - Directly append Blob to FormData in server environment
-   - Use File constructor only in browser environment
+   - Directly append Blob to FormData in all environments
+   - Avoid File constructor completely to prevent experimental warnings
    - Add detailed logging for debugging
 
 2. Maintain current LLM (Claude-3-Haiku) due to:
@@ -166,5 +170,5 @@ Target metrics:
    - Deduplication logic
 
 ## Revision History
-- 2025-02-25: Updated with voice processing fixes for Vercel environment
+- 2025-02-25: Updated with voice processing fixes for Vercel environment and Node.js 22.x
 - 2024-02-24: Initial active context document created

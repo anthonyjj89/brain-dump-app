@@ -129,37 +129,21 @@ export async function transcribeAudio(audio: Blob): Promise<string> {
     const fileType = audio.type || 'audio/webm';
     const fileName = `audio.${fileExtension}`;
     
-    // Check if we're in a browser or server environment
-    const isServerEnvironment = typeof window === 'undefined';
-    const isFileAvailable = typeof File !== 'undefined';
-    
-    console.log('Environment detection:', {
-      isServerEnvironment,
-      isFileAvailable,
+    // Avoid using File constructor completely to prevent experimental warnings in Node.js 22.x
+    console.log('Environment:', {
       environment: process.env.NODE_ENV,
-      isVercel: !!process.env.VERCEL
+      isVercel: !!process.env.VERCEL,
+      isServer: typeof window === 'undefined'
     });
     
-    // Handle file creation differently based on environment
-    if (isFileAvailable) {
-      // Browser environment or environments where File is available
-      try {
-        const audioFile = new File([audio], fileName, { type: fileType });
-        console.log('Created File object for Whisper API:', {
-          name: audioFile.name,
-          type: audioFile.type,
-          size: audioFile.size
-        });
-        formData.append('file', audioFile);
-      } catch (error) {
-        console.warn('Failed to create File object, falling back to Blob:', error);
-        formData.append('file', audio, fileName);
-      }
-    } else {
-      // Server environment where File is not available
-      console.log('File constructor not available, using Blob directly');
-      // In Node.js/Vercel environment, we can append the blob directly with a filename
+    // Append the blob directly with a filename
+    // This works in both browser and server environments
+    try {
       formData.append('file', audio, fileName);
+      console.log('Added audio blob to form data with filename:', fileName);
+    } catch (error) {
+      console.error('Error appending file to form data:', error);
+      throw new Error('Failed to process audio: ' + (error instanceof Error ? error.message : String(error)));
     }
     
     formData.append('model', 'whisper-1');
