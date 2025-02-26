@@ -31,7 +31,11 @@ export default function ReviewContainer() {
                 body: JSON.stringify({ id }),
             });
 
+            console.log('Delete API response:', response);
+
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Failed to delete thought. Status:', response.status, 'Response:', errorText);
                 throw new Error('Failed to delete thought');
             }
 
