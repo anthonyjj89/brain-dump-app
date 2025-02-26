@@ -190,3 +190,16 @@ Target metrics:
 ## Revision History
 - 2025-02-25: Updated with NLP service implementation and voice processing fixes
 - 2024-02-24: Initial active context document created
+
+## CRITICAL ISSUE: MongoDB Connection Not Configured
+
+The application is currently unable to connect to MongoDB because the connection string in the `.env` file is using placeholder values. The following placeholders in `MONGODB_URI` need to be replaced with the actual credentials:
+
+- `<username>`
+- `<password>`
+- `<cluster>`
+- `<database>`
+
+**Until these values are correctly configured, the application will not function properly.** All database-dependent operations, including deleting thoughts, will fail.
+
+**Next Step: The user MUST provide the correct MongoDB connection details to proceed.**

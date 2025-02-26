@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { usePendingThoughts } from '@/hooks/usePendingThoughts';
 import type { Thought } from '@/hooks/usePendingThoughts';
 import ContentCard from '../shared/ContentCard';
+import { useQueryClient } from '@tanstack/react-query';
 
 const filters = [
   { id: '', label: 'All Types' },
@@ -12,12 +13,36 @@ const filters = [
 
 export default function ReviewContainer() {
   const [activeFilter, setActiveFilter] = useState('');
+  const queryClient = useQueryClient();
   const { thoughts, isLoading, error, handleApprove, handleReject, handleTypeChange } = usePendingThoughts(activeFilter);
 
   const handleFix = async (id: string, method: 'voice' | 'text') => {
     // TODO: Implement fix functionality
     console.log('Fix thought:', id, method);
   };
+
+    const handleDelete = async (id: string) => {
+        try {
+            const response = await fetch(`/api/review`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete thought');
+            }
+
+            // Invalidate and refetch
+            queryClient.invalidateQueries({ queryKey: ['thoughts', 'pending', activeFilter] });
+
+        } catch (error) {
+            console.error('Error deleting thought:', error);
+            // Optionally show an error message to the user
+        }
+    };
 
   if (isLoading) {
     return (
@@ -89,6 +114,7 @@ export default function ReviewContainer() {
               onApprove={handleApprove}
               onReject={handleReject}
               onFix={handleFix}
+              onDelete={handleDelete}
             />
           ))
         )}

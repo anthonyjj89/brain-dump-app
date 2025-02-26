@@ -110,6 +110,7 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { id } = await request.json();
+    console.log('Received DELETE request with id:', id);
 
     if (!id) {
       return NextResponse.json(
@@ -121,6 +122,7 @@ export async function DELETE(request: NextRequest) {
     const thoughts = await getCollection('thoughts');
 
     const result = await thoughts.deleteOne({ _id: new ObjectId(id) });
+    console.log('Delete result:', result);
 
     if (result.deletedCount === 0) {
       return NextResponse.json(
