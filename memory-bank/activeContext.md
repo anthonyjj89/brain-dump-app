@@ -203,3 +203,5 @@ The application is currently unable to connect to MongoDB because the connection
 **Until these values are correctly configured, the application will not function properly.** All database-dependent operations, including deleting thoughts, will fail.
 
 **Next Step: The user MUST provide the correct MongoDB connection details to proceed.**
+
+The user is deploying the application to Vercel to test if the issue persists in a production environment. We are awaiting the results of this deployment.

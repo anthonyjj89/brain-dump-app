@@ -92,15 +92,18 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
   };
 
   const handleDeleteClick = () => {
+    console.log('handleDeleteClick called');
     setIsConfirmingDelete(true);
   }
 
   const handleConfirmDelete = () => {
+      console.log('handleConfirmDelete called with thought.id:', thought.id);
       onDelete && onDelete(thought.id);
       setIsConfirmingDelete(false); // Reset state
   }
 
   const handleCancelDelete = () => {
+      console.log('handleCancelDelete called');
       setIsConfirmingDelete(false);
   }
 
