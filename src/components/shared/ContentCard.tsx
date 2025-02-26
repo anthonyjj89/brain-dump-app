@@ -33,13 +33,14 @@ interface ContentCardProps {
   onApprove?: (id: string) => void;
   onReject?: (id: string) => void;
   onFix?: (id: string, method: 'voice' | 'text') => void;
-  onDelete?: (id: string) => void; // New onDelete prop
+  onDelete?: (id: string) => void;
+  showDelete?: boolean;
 }
 
-export default function ContentCard({ thought, onTypeChange, onApprove, onReject, onFix, onDelete }: ContentCardProps) {
+export default function ContentCard({ thought, onTypeChange, onApprove, onReject, onFix, onDelete, showDelete }: ContentCardProps) {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
-  const getIcon = (type: string) => {
+    const getIcon = (type: string) => {
     switch (type) {
       case 'task':
         return '✓';
@@ -96,9 +97,13 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
     setIsConfirmingDelete(true);
   }
 
-  const handleConfirmDelete = () => {
-      console.log('handleConfirmDelete called with thought.id:', thought.id);
-      onDelete && onDelete(thought.id);
+    const handleConfirmDelete = () => {
+      console.log('handleConfirmDelete called, props.onDelete exists:', !!onDelete);
+      if (onDelete) {
+        onDelete(thought.id);
+      } else {
+        console.log('onDelete prop is undefined');
+      }
       setIsConfirmingDelete(false); // Reset state
   }
 
@@ -268,35 +273,35 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
             </div>
           )}
             {/* Delete button and confirmation */}
-            {thought.status === 'approved' && (
-                <div className="flex gap-2 ml-auto">
-                    {!isConfirmingDelete && (
-                        <button
-                            onClick={handleDeleteClick}
-                            className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-500 transition-colors"
-                        >
-                            Delete
-                        </button>
-                    )}
-                    {isConfirmingDelete && (
-                        <>
-                            <button
-                                onClick={handleConfirmDelete}
-                                className="px-3 py-1 bg-red-700 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
-                            >
-                                Confirm
-                            </button>
-                            <button
-                                onClick={handleCancelDelete}
-                                className="px-3 py-1 bg-gray-600 text-white rounded-lg text-sm hover:bg-gray-500 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                        </>
-                    )}
-                </div>
+            {showDelete && thought.status === 'approved' && (
+              <div className="flex gap-2 ml-auto">
+                {!isConfirmingDelete && (
+                  <button
+                    onClick={handleDeleteClick}
+                    className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-500 transition-colors"
+                  >
+                    Delete
+                  </button>
+                )}
+                {isConfirmingDelete && (
+                  <>
+                    <button
+                      onClick={handleConfirmDelete}
+                      className="px-3 py-1 bg-red-700 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
+                    >
+                      Confirm
+                    </button>
+                    <button
+                      onClick={handleCancelDelete}
+                      className="px-3 py-1 bg-gray-600 text-white rounded-lg text-sm hover:bg-gray-500 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                )}
+              </div>
             )}
         </div>
       </div>
-  );
-}
+    );
+  }

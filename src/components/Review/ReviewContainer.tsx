@@ -102,25 +102,28 @@ export default function ReviewContainer() {
             No pending thoughts to review
           </div>
         ) : (
-          thoughts.map((thought: Thought) => (
-            <ContentCard
-              key={thought._id}
-              thought={{
-                id: thought._id,
-                thoughtType: thought.thoughtType,
-                confidence: thought.confidence,
-                possibleTypes: thought.possibleTypes,
-                content: thought.content,
-                status: thought.status,
-                processedContent: thought.processedContent
-              }}
-              onTypeChange={handleTypeChange}
-              onApprove={handleApprove}
-              onReject={handleReject}
-              onFix={handleFix}
-              onDelete={handleDelete}
-            />
-          ))
+          thoughts.map((thought: Thought) => {
+            console.log('Rendering ContentCard with onDelete:', handleDelete);
+            return (
+              <ContentCard
+                key={thought._id}
+                thought={{
+                  id: thought._id,
+                  thoughtType: thought.thoughtType,
+                  confidence: thought.confidence,
+                  possibleTypes: thought.possibleTypes,
+                  content: thought.content,
+                  status: thought.status,
+                  processedContent: thought.processedContent
+                }}
+                onTypeChange={handleTypeChange}
+                onApprove={handleApprove}
+                onReject={handleReject}
+                onFix={handleFix}
+                onDelete={handleDelete}
+              />
+            );
+          })
         )}
       </div>
     </div>
