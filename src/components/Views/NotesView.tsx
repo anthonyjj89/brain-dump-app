@@ -19,6 +19,11 @@ export default function NotesView({ status }: NotesViewProps) {
   };
 
     const handleDelete = async (id: string) => {
+        // Optimistically remove the thought from the UI
+        const previousThoughts = thoughts;
+        const updatedThoughts = thoughts.filter((thought) => thought._id !== id);
+        queryClient.setQueryData<Thought[]>(['thoughts', status], updatedThoughts);
+
         try {
             const response = await fetch(`/api/review`, {
                 method: 'DELETE',
@@ -33,6 +38,8 @@ export default function NotesView({ status }: NotesViewProps) {
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Failed to delete thought. Status:', response.status, 'Response:', errorText);
+                // Revert to previous state on error
+                queryClient.setQueryData<Thought[]>(['thoughts', status], previousThoughts);
                 throw new Error('Failed to delete thought');
             }
 
@@ -40,33 +47,35 @@ export default function NotesView({ status }: NotesViewProps) {
             queryClient.invalidateQueries({ queryKey: ['thoughts', status] });
 
         } catch (error) {
+            // Revert to previous state on error
+            queryClient.setQueryData<Thought[]>(['thoughts', status], previousThoughts);
             console.error('Error deleting thought:', error);
         }
     }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            </div>
+        );
+    }
 
-  if (error) {
-    return (
-      <div className="text-red-500 p-4">
-        Error loading notes
-      </div>
-    );
-  }
+    if (error) {
+        return (
+            <div className="text-red-500 p-4">
+                Error loading notes
+            </div>
+        );
+    }
 
-  if (thoughts.length === 0) {
-    return (
-      <div className="text-center text-gray-400 py-8">
-        {status === 'pending' ? 'No notes to review' : 'No approved notes yet'}
-      </div>
-    );
-  }
+    if (thoughts.length === 0) {
+        return (
+            <div className="text-center text-gray-400 py-8">
+                {status === 'pending' ? 'No notes to review' : 'No approved notes yet'}
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-4">

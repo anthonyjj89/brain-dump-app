@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { ArrowPathIcon } from '@heroicons/react/24/solid'
+import { motion, AnimatePresence } from 'framer-motion';
 import 'react-swipeable-list/dist/styles.css';
 
 interface ContentCardProps {
@@ -11,20 +13,16 @@ interface ContentCardProps {
     status: 'pending' | 'approved' | 'rejected';
     processedContent: {
       title?: string;
-      // Task fields
       dueDate?: string;
       priority?: string;
-      // Event fields - support both naming conventions
       eventDate?: string;
       eventTime?: string;
       date?: string;
       time?: string;
       location?: string;
       person?: string;
-      // Note fields
       details?: string;
       tags?: string[];
-      // Uncertain fields
       suggestedDate?: string;
       suggestedAction?: string;
     };
@@ -39,92 +37,88 @@ interface ContentCardProps {
 
 export default function ContentCard({ thought, onTypeChange, onApprove, onReject, onFix, onDelete, showDelete }: ContentCardProps) {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-    const getIcon = (type: string) => {
+  const getIcon = (type: string) => {
     switch (type) {
-      case 'task':
-        return '✓';
-      case 'event':
-        return '📅';
-      case 'note':
-        return '📝';
-      case 'uncertain':
-        return '❓';
-      default:
-        return '•';
+      case 'task': return '✓';
+      case 'event': return '📅';
+      case 'note': return '📝';
+      case 'uncertain': return '❓';
+      default: return '•';
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'task':
-        return 'bg-blue-500';
-      case 'event':
-        return 'bg-green-500';
-      case 'note':
-        return 'bg-gray-500';
-      case 'uncertain':
-        return 'bg-yellow-500';
-      default:
-        return 'bg-gray-500';
+      case 'task': return 'bg-blue-500';
+      case 'event': return 'bg-green-500';
+      case 'note': return 'bg-gray-500';
+      case 'uncertain': return 'bg-yellow-500';
+      default: return 'bg-gray-500';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved':
-        return 'bg-green-500';
-      case 'rejected':
-        return 'bg-red-500';
-      default:
-        return 'bg-yellow-500';
+      case 'approved': return 'bg-green-500';
+      case 'rejected': return 'bg-red-500';
+      default: return 'bg-yellow-500';
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'approved':
-        return 'Approved';
-      case 'rejected':
-        return 'Rejected';
-      default:
-        return 'Pending';
+      case 'approved': return 'Approved';
+      case 'rejected': return 'Rejected';
+      default: return 'Pending';
     }
   };
 
   const handleDeleteClick = () => {
-    console.log('handleDeleteClick called');
     setIsConfirmingDelete(true);
   }
 
-    const handleConfirmDelete = () => {
-      console.log('handleConfirmDelete called, props.onDelete exists:', !!onDelete);
-      if (onDelete) {
-        onDelete(thought.id);
-      } else {
-        console.log('onDelete prop is undefined');
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    if (onDelete) {
+      try {
+        await onDelete(thought.id);
+      } catch (error) {
+        console.error("Error in onDelete:", error);
+      } finally {
+        setIsDeleting(false);
       }
-      setIsConfirmingDelete(false); // Reset state
+    } else {
+      setIsDeleting(false);
+    }
+    setIsConfirmingDelete(false);
   }
 
   const handleCancelDelete = () => {
-      console.log('handleCancelDelete called');
-      setIsConfirmingDelete(false);
+    setIsConfirmingDelete(false);
   }
 
   return (
-    
-      <div className={`
-        bg-slate-800 rounded-lg p-6 space-y-4
-        border border-slate-700
-        shadow-lg shadow-black/20
-        hover:border-slate-600
-        transition-all duration-300
-        relative
-        ${thought.status === 'pending' ? 'animate-slide-in' : ''}
-      `}>
+    <AnimatePresence>
+      <motion.div 
+        className={`
+          bg-slate-800 rounded-lg p-6 space-y-4
+          border border-slate-700
+          shadow-lg shadow-black/20
+          hover:border-slate-600
+          relative
+        `}
+        initial={{ opacity: 1, y: 0 }}
+        exit={{ 
+          opacity: 0, 
+          y: -20,
+          transition: { duration: 0.3 }
+        }}
+      >
         {/* Gradient line at bottom */}
         <div className="absolute inset-x-0 -bottom-px h-[1px] bg-gradient-to-r from-transparent via-slate-500/20 to-transparent" />
+        
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -160,7 +154,6 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
 
           {thought.thoughtType === 'event' && (
             <>
-              {/* Support both field naming conventions for backward compatibility */}
               {(thought.processedContent.eventDate || thought.processedContent.date) && (
                 <div className="text-green-400">
                   Date: {thought.processedContent.eventDate || thought.processedContent.date}
@@ -171,11 +164,10 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
                   Time: {thought.processedContent.eventTime || thought.processedContent.time}
                 </div>
               )}
-              {(thought.processedContent.location) && (
+              {thought.processedContent.location && (
                 <div className="text-green-400">Location: {thought.processedContent.location}</div>
               )}
-              {/* Add support for person field */}
-              {(thought.processedContent.person) && (
+              {thought.processedContent.person && (
                 <div className="text-green-400">With: {thought.processedContent.person}</div>
               )}
             </>
@@ -272,36 +264,43 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
               )}
             </div>
           )}
-            {/* Delete button and confirmation */}
-            {showDelete && thought.status === 'approved' && (
-              <div className="flex gap-2 ml-auto">
-                {!isConfirmingDelete && (
+
+          {/* Delete button and confirmation */}
+          {showDelete && thought.status === 'approved' && (
+            <div className="flex gap-2 ml-auto">
+              {!isConfirmingDelete && !isDeleting && (
+                <button
+                  onClick={handleDeleteClick}
+                  className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-500 transition-colors"
+                >
+                  Delete
+                </button>
+              )}
+              {isDeleting && (
+                <span className="px-3 py-1 text-red-500 text-sm animate-spin">
+                  <ArrowPathIcon className="h-5 w-5" />
+                </span>
+              )}
+              {isConfirmingDelete && !isDeleting && (
+                <>
                   <button
-                    onClick={handleDeleteClick}
-                    className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-500 transition-colors"
+                    onClick={handleConfirmDelete}
+                    className="px-3 py-1 bg-red-700 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
                   >
-                    Delete
+                    Confirm
                   </button>
-                )}
-                {isConfirmingDelete && (
-                  <>
-                    <button
-                      onClick={handleConfirmDelete}
-                      className="px-3 py-1 bg-red-700 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
-                    >
-                      Confirm
-                    </button>
-                    <button
-                      onClick={handleCancelDelete}
-                      className="px-3 py-1 bg-gray-600 text-white rounded-lg text-sm hover:bg-gray-500 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+                  <button
+                    onClick={handleCancelDelete}
+                    className="px-3 py-1 bg-gray-600 text-white rounded-lg text-sm hover:bg-gray-500 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </div>
-      </div>
-    );
-  }
+      </motion.div>
+    </AnimatePresence>
+  );
+}
