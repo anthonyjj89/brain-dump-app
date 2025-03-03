@@ -11,11 +11,11 @@ const nextConfig: NextConfig = {
   },
   // Add experimental features configuration
   experimental: {
-    serverComponentsExternalPackages: ['formidable'],
     serverActions: {
       bodySizeLimit: '10mb', // Increase limit for audio uploads
     },
   },
+  serverExternalPackages: ['formidable'],
   // Configure headers for better compatibility
   async headers() {
     return [

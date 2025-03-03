@@ -11,8 +11,7 @@
     "start": "next start",
     "lint": "next lint",
     "prepare": "node -e \"if (require('fs').existsSync('.git') && process.env.CI !== 'true') { require('child_process').execSync('husky install', { stdio: 'inherit' }) }\"",
-    "sync:bugs": "curl -X GET http://localhost:3000/api/sync/bugs",
-    "heroku-postbuild": "npm ci --omit=dev && npm run build"
+    "sync:bugs": "curl -X GET http://localhost:3000/api/sync/bugs"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
