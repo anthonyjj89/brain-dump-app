@@ -20,6 +20,10 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // This is a server component, so we can't directly use the state here
+  // The isPanelCollapsed state and togglePanel function will be managed by the Home component
+  // and passed to ClientBody via special props inside children
+  
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={cn(
@@ -30,9 +34,7 @@ export default function RootLayout({
           defaultTheme="dark"
           storageKey="brain-dump-theme"
         >
-          <ClientBody>
-            {children}
-          </ClientBody>
+          {children}
         </ThemeProvider>
       </body>
     </html>

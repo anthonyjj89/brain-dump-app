@@ -404,37 +404,41 @@ export default function ThoughtForm() {
   };
 
   return (
-    <div className="flex flex-col items-center max-w-[600px] mx-auto">
+    <div className="flex flex-col items-center w-full mx-auto">
       <Card className="w-full bg-card border shadow-sm">
-        <CardHeader className="px-0 pt-0">
+        <CardHeader className="px-2 pt-2 sm:px-4 sm:pt-4">
           <div className="flex justify-between items-center">
-            <CardTitle className="text-xl font-medium">New Thought</CardTitle>
-            <div className="flex items-center gap-3 bg-card rounded-lg px-3 py-1.5">
-              <span className="text-sm text-muted-foreground">Voice</span>
+            <CardTitle className="text-lg font-medium md:text-xl">New Dump</CardTitle>
+            <div className="flex items-center gap-3 bg-card rounded-lg px-2 py-1 sm:px-3 sm:py-1.5">
+              <span className="text-xs sm:text-sm text-muted-foreground">Voice</span>
               <Switch 
                 checked={inputMode === 'text'}
                 onCheckedChange={(checked) => setInputMode(checked ? 'text' : 'voice')}
               />
-              <span className="text-sm text-muted-foreground">Text</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">Text</span>
             </div>
           </div>
-          <div className="flex justify-between items-center mt-4">
+          <div className="flex justify-end items-center mt-2 sm:mt-4">
             {inputMode === 'voice' && (
-              <MicrophoneSelector 
-                onDeviceSelected={handleMicrophoneSelected}
-                selectedDeviceId={selectedMicrophoneId}
-              />
+              <div className="w-full md:w-auto">
+                <MicrophoneSelector 
+                  onDeviceSelected={handleMicrophoneSelected}
+                  selectedDeviceId={selectedMicrophoneId}
+                />
+              </div>
             )}
           </div>
         </CardHeader>
         
-        <CardContent className="px-0 flex flex-col items-center">
+        <CardContent className="px-2 pb-6 sm:px-4 flex flex-col items-center">
           {inputMode === 'voice' ? (
-            <AudioVisualizer 
-              state={recordingState} 
-              volume={volume} 
-              onClick={recordingState === 'recording' ? stopRecording : startRecording}
-            />
+            <div className="py-6 flex items-center justify-center w-full h-full">
+              <AudioVisualizer 
+                state={recordingState} 
+                volume={volume} 
+                onClick={recordingState === 'recording' ? stopRecording : startRecording}
+              />
+            </div>
           ) : (
             <form onSubmit={handleSubmitText} className="w-full">
               <div className="grid gap-4">

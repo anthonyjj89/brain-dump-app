@@ -339,7 +339,7 @@ export default function DaySummarizer() {
           <p className="text-muted-foreground mb-6">Get a smart overview of your day with tasks prioritized and events organized</p>
           <Button 
             onClick={handleGenerateSummary} 
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+            className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
             size="lg"
             disabled={isLoading}
           >
