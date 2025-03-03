@@ -8,6 +8,14 @@ interface FeedbackRequest {
   summaryId?: string; // Optional: allows for specific summary identification
 }
 
+// Interface for feedback item
+interface FeedbackItem {
+  rating: number;
+  feedback: string;
+  timestamp: Date;
+  summaryId?: string;
+}
+
 export async function POST(request: Request) {
   try {
     // Parse the request body
@@ -24,7 +32,7 @@ export async function POST(request: Request) {
     // Get the user preferences collection
     const userPreferences = await getCollection('user_preferences');
     
-    // Prepare the feedback data
+    // Prepare the feedback data without types that might conflict with MongoDB
     const feedbackData = {
       rating: body.rating,
       feedback: body.feedback || '',
@@ -32,14 +40,21 @@ export async function POST(request: Request) {
       summaryId: body.summaryId
     };
     
-    // Update or create user preferences document with feedback history
+    // First create the document if it doesn't exist
+    await userPreferences.updateOne(
+      { type: 'summary_feedback' },
+      { $setOnInsert: { feedbackHistory: [] } },
+      { upsert: true }
+    );
+    
+    // Using a separate update with type assertion to bypass TypeScript error
+    // This is a workaround for the MongoDB type definitions
     const result = await userPreferences.updateOne(
       { type: 'summary_feedback' },
-      { 
-        $push: { 'feedbackHistory': feedbackData },
-        $set: { lastUpdated: new Date() }
-      },
-      { upsert: true }
+      {
+        $set: { lastUpdated: new Date() },
+        $push: { feedbackHistory: feedbackData }
+      } as any // Type assertion to bypass TypeScript error
     );
     
     // If a specific summary was referenced, update it too
@@ -88,9 +103,9 @@ export async function GET() {
     }
     
     // Calculate average rating
-    const feedbackHistory = preferences.feedbackHistory || [];
+    const feedbackHistory: FeedbackItem[] = preferences.feedbackHistory || [];
     const averageRating = feedbackHistory.length > 0
-      ? feedbackHistory.reduce((acc: number, item: any) => acc + item.rating, 0) / feedbackHistory.length
+      ? feedbackHistory.reduce((acc: number, item: FeedbackItem) => acc + item.rating, 0) / feedbackHistory.length
       : null;
     
     return NextResponse.json({
