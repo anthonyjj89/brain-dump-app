@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 import ProcessingBreakdown from './ProcessingBreakdown';
 
 // Helper function to format time strings
@@ -135,127 +138,132 @@ export default function ProcessingStatus({ transcribedText, segments = [], found
     return metadata;
   };
 
+  const getThoughtTypeColor = (type: string) => {
+    switch(type) {
+      case 'task': return 'info';
+      case 'event': return 'secondary';
+      case 'note': return 'success';
+      default: return 'default';
+    }
+  };
+
   return (
     <div className="mt-4 space-y-6">
       {/* Processing Steps */}
       {segments.length > 0 && (
-        <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700/50 animate-fade-up">
-          <div className="text-sm font-medium text-slate-400 mb-4">Processing Steps:</div>
-          <div className="space-y-4">
+        <Card className="animate-fade-in">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Processing Steps</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             {segments.map((segment, i) => (
-              <div
-                key={i}
-                className="relative"
-              >
+              <div key={i} className="relative pl-10">
                 {/* Step Number */}
-                <div className="absolute -left-4 top-1/2 transform -translate-y-1/2 -translate-x-full">
-                  <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center text-sm font-mono text-slate-300 border border-slate-600">
+                <div className="absolute left-0 top-1/2 transform -translate-y-1/2 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium bg-muted text-muted-foreground border">
                     {i + 1}
                   </div>
                 </div>
 
                 {/* Step Content */}
                 <div 
-                  className="bg-slate-700/30 rounded-lg p-4 border-l-4 border-yellow-500/50 animate-fade-up"
+                  className="p-4 rounded-md border bg-card/50 animate-fade-in"
                   style={{ animationDelay: `${i * 150}ms` }}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-1">
-                      <div className="text-sm text-slate-300 font-mono">{segment}</div>
-                      <div className="mt-2 flex gap-2">
-                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800/50 text-slate-400">
-                          Step {i + 1}
-                        </span>
-                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800/50 text-slate-400">
-                          {i === 0 ? 'Transcribing' : i === segments.length - 1 ? 'Finalizing' : 'Processing'}
-                        </span>
-                      </div>
-                    </div>
+                  <div className="text-sm text-muted-foreground mb-2">{segment}</div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline">Step {i + 1}</Badge>
+                    <Badge variant="secondary">
+                      {i === 0 ? 'Transcribing' : i === segments.length - 1 ? 'Finalizing' : 'Processing'}
+                    </Badge>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Processed Results */}
       {processedThoughts.length > 0 && (
-        <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700/50 animate-fade-up">
-          <div className="text-sm font-medium text-slate-400 mb-4">Processed Results:</div>
-          <div className="space-y-4">
+        <Card className="animate-fade-in">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Processed Results</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             {processedThoughts.map((thought, i) => (
               <div
                 key={i}
-                className="bg-slate-700/30 rounded-lg p-4 border-l-4 border-green-500/50 animate-fade-up"
+                className="p-4 border rounded-md bg-card animate-fade-in"
                 style={{ animationDelay: `${i * 150}ms` }}
               >
                 {/* Result Header */}
-                <div className="flex items-center gap-3 mb-3">
-                  <div className={`
-                    w-2 h-2 rounded-full
-                    ${thought.type === 'task' ? 'bg-blue-500' : 
-                      thought.type === 'event' ? 'bg-purple-500' : 
-                      'bg-green-500'}
-                  `} />
-                  <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800/50 text-slate-300">
-                    {thought.type}
-                  </span>
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge variant={getThoughtTypeColor(thought.type)}>
+                    {thought.type.charAt(0).toUpperCase() + thought.type.slice(1)}
+                  </Badge>
+                  
                   {thought.metadata?.time && (
-                    <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-800/50 text-slate-300">
-                      {thought.metadata.time}
-                    </span>
+                    <Badge variant="outline">{thought.metadata.time}</Badge>
                   )}
                 </div>
 
                 {/* Result Content */}
-                <div className="text-sm text-slate-300 font-mono pl-4 border-l border-slate-600">
+                <div className="text-sm pl-2 border-l-2 border-primary/20 py-1">
                   {thought.text}
                 </div>
 
                 {/* Result Metadata */}
-                <div className="mt-3 pl-4 pt-3 border-t border-slate-700">
-                  <div className="flex flex-wrap gap-2">
-                    {thought.type === 'event' && (
-                      <>
-                        <span className="text-xs px-2 py-1 rounded-full bg-slate-800/50 text-slate-400">
-                          Time: {thought.metadata?.time ? formatTime(thought.metadata.time) : '-'}
-                        </span>
-                        <span className="text-xs px-2 py-1 rounded-full bg-slate-800/50 text-slate-400">
-                          Date: {thought.metadata?.date || '-'}
-                        </span>
-                        <span className="text-xs px-2 py-1 rounded-full bg-slate-800/50 text-slate-400">
-                          With: {thought.metadata?.person || '-'}
-                        </span>
-                        <span className="text-xs px-2 py-1 rounded-full bg-slate-800/50 text-slate-400">
-                          Location: {thought.metadata?.location || '-'}
-                        </span>
-                      </>
-                    )}
-                    {thought.type === 'task' && (
-                      <>
-                        <span className="text-xs px-2 py-1 rounded-full bg-slate-800/50 text-slate-400">
-                          Priority: {thought.metadata?.priority || 'medium'}
-                        </span>
-                        {thought.metadata?.dueDate && (
-                          <span className="text-xs px-2 py-1 rounded-full bg-slate-800/50 text-slate-400">
-                            Due: {thought.metadata.dueDate}
-                            {thought.metadata.dueTime ? ` at ${formatTime(thought.metadata.dueTime)}` : ''}
-                          </span>
-                        )}
-                      </>
-                    )}
-                    {thought.type === 'note' && thought.metadata?.tags && (
-                      <span className="text-xs px-2 py-1 rounded-full bg-slate-800/50 text-slate-400">
-                        Tags: {thought.metadata.tags.join(', ')}
-                      </span>
-                    )}
+                {(thought.metadata && Object.keys(thought.metadata).length > 0) && (
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="flex flex-wrap gap-2">
+                      {thought.type === 'event' && (
+                        <>
+                          {thought.metadata?.time && (
+                            <Badge variant="outline">Time: {formatTime(thought.metadata.time)}</Badge>
+                          )}
+                          {thought.metadata?.date && (
+                            <Badge variant="outline">Date: {thought.metadata.date}</Badge>
+                          )}
+                          {thought.metadata?.person && (
+                            <Badge variant="outline">With: {thought.metadata.person}</Badge>
+                          )}
+                          {thought.metadata?.location && (
+                            <Badge variant="outline">Location: {thought.metadata.location}</Badge>
+                          )}
+                        </>
+                      )}
+                      {thought.type === 'task' && (
+                        <>
+                          {thought.metadata?.priority && (
+                            <Badge 
+                              variant={thought.metadata.priority === 'high' ? 'destructive' : 'default'}
+                            >
+                              {thought.metadata.priority} priority
+                            </Badge>
+                          )}
+                          {thought.metadata?.dueDate && (
+                            <Badge variant="outline">
+                              Due: {thought.metadata.dueDate}
+                              {thought.metadata.dueTime ? ` at ${formatTime(thought.metadata.dueTime)}` : ''}
+                            </Badge>
+                          )}
+                        </>
+                      )}
+                      {thought.type === 'note' && thought.metadata?.tags && (
+                        <div className="flex flex-wrap gap-1">
+                          {thought.metadata.tags.map((tag: string, idx: number) => (
+                            <Badge key={idx} variant="secondary">#{tag}</Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

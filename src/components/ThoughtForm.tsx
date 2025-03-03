@@ -1,74 +1,68 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { Mic, Loader2, AlertCircle, Type } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import ProcessingStatus from './ProcessingStatus';
 import MicrophoneSelector from './MicrophoneSelector';
 
 interface AudioVisualizerProps {
   state: 'idle' | 'recording' | 'processing';
   volume: number;
+  onClick?: () => void;
 }
 
-function AudioVisualizer({ state, volume }: AudioVisualizerProps) {
+function AudioVisualizer({ state, volume, onClick }: AudioVisualizerProps) {
   return (
-    <div className="relative w-32 h-32 flex items-center justify-center">
-      {/* Background gradient with glow */}
-      <div className={`
-        absolute inset-0 rounded-full
+    <Button
+      onClick={onClick}
+      disabled={state === 'processing'}
+      variant="ghost"
+      size="lg"
+      className={`
+        relative w-32 h-32 rounded-full p-0
         ${state === 'recording' 
-          ? 'bg-gradient-to-r from-red-500 to-pink-600 shadow-[0_0_30px_rgba(239,68,68,0.5)]'
+          ? 'bg-destructive hover:bg-destructive'
           : state === 'processing'
-          ? 'bg-gradient-to-r from-yellow-500 to-orange-600 shadow-[0_0_30px_rgba(234,179,8,0.5)]'
-          : 'bg-gradient-to-r from-blue-500 to-purple-600 shadow-[0_0_30px_rgba(59,130,246,0.5)]'
+          ? 'bg-muted hover:bg-muted cursor-not-allowed'
+          : 'bg-primary hover:bg-primary/90'
         }
-        transition-all duration-500 ease-in-out
-        ${state === 'recording' ? 'scale-110' : 'scale-100'}
-      `} />
-
-      {/* Animated rings */}
+        transition-all duration-300
+      `}
+    >
+      {/* Pulse rings */}
       {state === 'recording' && (
         <>
-          <div className="absolute inset-0 rounded-full border-4 border-white/30 animate-ping" />
-          <div
-            className="absolute inset-0 rounded-full border-2 border-white/20 transition-all duration-200"
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-20"></span>
+          <span
+            className="absolute inline-flex rounded-full h-full w-full border-4 border-white/20 transition-transform duration-200"
             style={{
-              transform: `scale(${1 + Math.min(volume * 1.2, 1.2)})`,
+              transform: `scale(${1 + Math.min(volume * 0.8, 0.8)})`,
             }}
-          />
-          <div
-            className="absolute inset-0 rounded-full border-2 border-white/10 transition-all duration-200"
-            style={{
-              transform: `scale(${1 + Math.min(volume * 1.5, 1.5)})`,
-            }}
-          />
+          ></span>
         </>
       )}
-
-      {/* Icon with animation */}
-      <div className="relative z-10 text-2xl text-white transition-transform duration-200">
+            
+      {/* Icon */}
+      <div className="relative z-10 flex items-center justify-center">
         {state === 'recording' ? (
-          <div className="animate-pulse">
-            <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-              <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-            </svg>
-          </div>
+          <Mic className="h-10 w-10 text-white animate-pulse" />
         ) : state === 'processing' ? (
-          <div className="w-10 h-10 border-4 border-t-transparent border-white rounded-full animate-spin" />
+          <Loader2 className="h-10 w-10 text-muted-foreground animate-spin" />
         ) : (
-          <svg className="w-10 h-10 hover:scale-110 transition-transform" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-          </svg>
+          <Mic className="h-10 w-10 text-white" />
         )}
       </div>
-    </div>
+    </Button>
   );
 }
 
 export default function ThoughtForm() {
   const [recordingState, setRecordingState] = useState<'idle' | 'recording' | 'processing'>('idle');
-  const [showText, setShowText] = useState(false);
+  const [inputMode, setInputMode] = useState<'voice' | 'text'>('voice');
   const [content, setContent] = useState('');
   const [volume, setVolume] = useState(0);
   const [transcribedText, setTranscribedText] = useState('');
@@ -411,83 +405,90 @@ export default function ThoughtForm() {
 
   return (
     <div className="flex flex-col items-center max-w-[600px] mx-auto">
-      {/* Voice Input */}
-      <div className="w-full">
-        <div className="flex justify-between items-center mb-4">
-          <MicrophoneSelector 
-            onDeviceSelected={handleMicrophoneSelected}
-            selectedDeviceId={selectedMicrophoneId}
-          />
-        </div>
+      <Card className="w-full bg-card border shadow-sm">
+        <CardHeader className="px-0 pt-0">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-xl font-medium">New Thought</CardTitle>
+            <div className="flex items-center gap-3 bg-card rounded-lg px-3 py-1.5">
+              <span className="text-sm text-muted-foreground">Voice</span>
+              <Switch 
+                checked={inputMode === 'text'}
+                onCheckedChange={(checked) => setInputMode(checked ? 'text' : 'voice')}
+              />
+              <span className="text-sm text-muted-foreground">Text</span>
+            </div>
+          </div>
+          <div className="flex justify-between items-center mt-4">
+            {inputMode === 'voice' && (
+              <MicrophoneSelector 
+                onDeviceSelected={handleMicrophoneSelected}
+                selectedDeviceId={selectedMicrophoneId}
+              />
+            )}
+          </div>
+        </CardHeader>
         
-        <button
-          onClick={recordingState === 'recording' ? stopRecording : startRecording}
-          disabled={recordingState === 'processing'}
-          className="focus:outline-none disabled:opacity-50"
-        >
-          <AudioVisualizer state={recordingState} volume={volume} />
-        </button>
-
-        {/* Processing Status with animations */}
-        <div className="w-full max-w-full overflow-hidden mt-8">
-          {error ? (
-            <div className="bg-red-500/10 backdrop-blur rounded-xl p-6 border border-red-500/50 animate-fade-up">
-              <div className="text-sm font-medium text-red-400 mb-2">Error:</div>
-              <div className="text-red-300">{error}</div>
-            </div>
-          ) : isTranscribing && !transcribedText ? (
-            <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700/50 animate-fade-up">
-              <div className="flex items-center gap-3">
-                <div className="w-5 h-5 border-2 border-t-transparent border-blue-500 rounded-full animate-spin" />
-                <div className="text-slate-400">Transcribing audio...</div>
+        <CardContent className="px-0 flex flex-col items-center">
+          {inputMode === 'voice' ? (
+            <AudioVisualizer 
+              state={recordingState} 
+              volume={volume} 
+              onClick={recordingState === 'recording' ? stopRecording : startRecording}
+            />
+          ) : (
+            <form onSubmit={handleSubmitText} className="w-full">
+              <div className="grid gap-4">
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Type your thoughts..."
+                  className="flex min-h-[120px] w-full rounded-md border border-input bg-card px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+                <Button type="submit" className="w-full">Save Thought</Button>
               </div>
-            </div>
-          ) : transcribedText ? (
-            <div className="space-y-6 animate-fade-up">
-              {/* Voice Input Display */}
-              <div className="bg-slate-800/50 backdrop-blur rounded-xl p-6 border border-slate-700/50">
-                <div className="text-sm font-medium text-slate-400 mb-2">Voice Input:</div>
-                <div className="text-gray-300 font-mono pl-4 py-2 bg-slate-800/30 rounded-lg border-l-2 border-blue-500/50 animate-type-in">
-                  &quot;{transcribedText}&quot;
+            </form>
+          )}
+        </CardContent>
+        
+        {/* Error Messages */}
+        {error && (
+          <div className="mt-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="text-sm text-destructive">{error}</div>
+          </div>
+        )}
+        
+        {/* Processing Result Display */}
+        <CardFooter className="px-0 flex flex-col items-stretch w-full">
+          <div className="w-full max-w-full overflow-hidden mt-8">
+            {isTranscribing && !transcribedText ? (
+              <div className="bg-card/50 backdrop-blur rounded-lg p-6 border animate-pulse">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <div className="text-muted-foreground">Transcribing audio...</div>
                 </div>
               </div>
-              
-              {/* Processing Status */}
-              <ProcessingStatus
-                transcribedText={transcribedText}
-                segments={segments}
-                foundItems={foundItems}
-              />
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Text Toggle */}
-      <button
-        onClick={() => setShowText(!showText)}
-        className="text-sm text-gray-400 hover:text-white transition-colors mb-4"
-      >
-        {showText ? 'Switch to voice' : 'Switch to text'}
-      </button>
-
-      {/* Text Input */}
-      {showText && (
-        <form onSubmit={handleSubmitText} className="w-full">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="Type your thoughts..."
-            className="w-full h-32 px-4 py-2 bg-slate-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            type="submit"
-            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-400 transition-colors"
-          >
-            Save Thought
-          </button>
-        </form>
-      )}
+            ) : transcribedText ? (
+              <div className="space-y-6 animate-fade-in">
+                {/* Voice Input Display */}
+                <div className="bg-card/50 backdrop-blur rounded-lg p-6 border">
+                  <div className="text-sm font-medium text-muted-foreground mb-2">Voice Input:</div>
+                  <div className="text-foreground pl-4 py-2 bg-muted/30 rounded-lg border-l-2 border-primary/50 animate-type-in">
+                    &quot;{transcribedText}&quot;
+                  </div>
+                </div>
+                
+                {/* Processing Status */}
+                <ProcessingStatus
+                  transcribedText={transcribedText}
+                  segments={segments}
+                  foundItems={foundItems}
+                />
+              </div>
+            ) : null}
+          </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

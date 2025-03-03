@@ -1,7 +1,22 @@
 import { useState } from 'react';
-import { ArrowPathIcon } from '@heroicons/react/24/solid'
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  RotateCw, 
+  CheckSquare, 
+  Calendar, 
+  FileText, 
+  HelpCircle, 
+  AlertTriangle, 
+  MapPin, 
+  User, 
+  Clock, 
+  Tag 
+} from 'lucide-react';
 import 'react-swipeable-list/dist/styles.css';
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface ContentCardProps {
   thought: {
@@ -41,29 +56,29 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'task': return '✓';
-      case 'event': return '📅';
-      case 'note': return '📝';
-      case 'uncertain': return '❓';
-      default: return '•';
+      case 'task': return <CheckSquare className="h-4 w-4" />;
+      case 'event': return <Calendar className="h-4 w-4" />;
+      case 'note': return <FileText className="h-4 w-4" />;
+      case 'uncertain': return <HelpCircle className="h-4 w-4" />;
+      default: return <div className="h-4 w-4 rounded-full bg-current"></div>;
     }
   };
 
-  const getTypeColor = (type: string) => {
+  const getTypeBadgeVariant = (type: string) => {
     switch (type) {
-      case 'task': return 'bg-blue-500';
-      case 'event': return 'bg-green-500';
-      case 'note': return 'bg-gray-500';
-      case 'uncertain': return 'bg-yellow-500';
-      default: return 'bg-gray-500';
+      case 'task': return 'info';
+      case 'event': return 'secondary';
+      case 'note': return 'default';
+      case 'uncertain': return 'warning';
+      default: return 'default';
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'approved': return 'bg-green-500';
-      case 'rejected': return 'bg-red-500';
-      default: return 'bg-yellow-500';
+      case 'approved': return 'success';
+      case 'rejected': return 'destructive';
+      default: return 'warning';
     }
   };
 
@@ -102,13 +117,6 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
   return (
     <AnimatePresence>
       <motion.div 
-        className={`
-          bg-slate-800 rounded-lg p-6 space-y-4
-          border border-slate-700
-          shadow-lg shadow-black/20
-          hover:border-slate-600
-          relative
-        `}
         initial={{ opacity: 1, y: 0 }}
         exit={{ 
           opacity: 0, 
@@ -116,38 +124,50 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
           transition: { duration: 0.3 }
         }}
       >
-        {/* Gradient line at bottom */}
-        <div className="absolute inset-x-0 -bottom-px h-[1px] bg-gradient-to-r from-transparent via-slate-500/20 to-transparent" />
-        
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className={`${getTypeColor(thought.thoughtType)} w-6 h-6 rounded-full flex items-center justify-center text-white`}>
-              {getIcon(thought.thoughtType)}
-            </span>
-            <h3 className="font-medium text-white">
-              {thought.processedContent.title || 'Untitled'}
-            </h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {thought.confidence === 'low' && (
-              <span className="text-xs text-yellow-500">Low Confidence</span>
-            )}
-            <span className={`${getStatusColor(thought.status)} px-2 py-1 rounded text-xs text-white`}>
-              {getStatusText(thought.status)}
-            </span>
-          </div>
-        </div>
+        <Card className="relative overflow-hidden">
+          {/* Gradient line at bottom */}
+          <div className="absolute inset-x-0 -bottom-px h-[1px] bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+          
+          {/* Header */}
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`bg-background border border-border w-6 h-6 rounded-full flex items-center justify-center text-${getTypeBadgeVariant(thought.thoughtType)}`}>
+                  {getIcon(thought.thoughtType)}
+                </span>
+                <h3 className="font-medium">
+                  {thought.processedContent.title || 'Untitled'}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {thought.confidence === 'low' && (
+                  <div className="flex items-center gap-1 text-yellow-500 text-xs">
+                    <AlertTriangle className="h-3 w-3" />
+                    <span>Low Confidence</span>
+                  </div>
+                )}
+                <Badge variant={getStatusBadgeVariant(thought.status)}>
+                  {getStatusText(thought.status)}
+                </Badge>
+              </div>
+            </div>
+          </CardHeader>
 
-        {/* Content */}
-        <div className="text-gray-300 text-sm">
+          {/* Content */}
+          <CardContent className="text-sm text-muted-foreground">
           {thought.thoughtType === 'task' && (
             <>
               {thought.processedContent.dueDate && (
-                <div className="text-blue-400">Due: {thought.processedContent.dueDate}</div>
+                <div className="flex items-center gap-1 text-blue-400">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>Due: {thought.processedContent.dueDate}</span>
+                </div>
               )}
               {thought.processedContent.priority && (
-                <div className="text-blue-400">Priority: {thought.processedContent.priority}</div>
+                <div className="flex items-center gap-1 text-blue-400 mt-1">
+                  <CheckSquare className="h-3.5 w-3.5" />
+                  <span>Priority: {thought.processedContent.priority}</span>
+                </div>
               )}
             </>
           )}
@@ -155,20 +175,28 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
           {thought.thoughtType === 'event' && (
             <>
               {(thought.processedContent.eventDate || thought.processedContent.date) && (
-                <div className="text-green-400">
-                  Date: {thought.processedContent.eventDate || thought.processedContent.date}
+                <div className="flex items-center gap-1 text-green-400">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>Date: {thought.processedContent.eventDate || thought.processedContent.date}</span>
                 </div>
               )}
               {(thought.processedContent.eventTime || thought.processedContent.time) && (
-                <div className="text-green-400">
-                  Time: {thought.processedContent.eventTime || thought.processedContent.time}
+                <div className="flex items-center gap-1 text-green-400 mt-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>Time: {thought.processedContent.eventTime || thought.processedContent.time}</span>
                 </div>
               )}
               {thought.processedContent.location && (
-                <div className="text-green-400">Location: {thought.processedContent.location}</div>
+                <div className="flex items-center gap-1 text-green-400 mt-1">
+                  <MapPin className="h-3.5 w-3.5" />
+                  <span>Location: {thought.processedContent.location}</span>
+                </div>
               )}
               {thought.processedContent.person && (
-                <div className="text-green-400">With: {thought.processedContent.person}</div>
+                <div className="flex items-center gap-1 text-green-400 mt-1">
+                  <User className="h-3.5 w-3.5" />
+                  <span>With: {thought.processedContent.person}</span>
+                </div>
               )}
             </>
           )}
@@ -179,7 +207,8 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
               {thought.processedContent.tags && thought.processedContent.tags.length > 0 && (
                 <div className="flex gap-2 mt-2">
                   {thought.processedContent.tags.map((tag, index) => (
-                    <span key={index} className="bg-slate-700 px-2 py-1 rounded text-xs">
+                    <span key={index} className="bg-slate-700 px-2 py-1 rounded text-xs flex items-center gap-1">
+                      <Tag className="h-3 w-3" />
                       {tag}
                     </span>
                   ))}
@@ -192,43 +221,61 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
             <>
               <div>{thought.content}</div>
               {thought.processedContent.suggestedDate && (
-                <div className="text-yellow-400">Date Mentioned: {thought.processedContent.suggestedDate}</div>
+                <div className="flex items-center gap-1 text-yellow-400 mt-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>Date Mentioned: {thought.processedContent.suggestedDate}</span>
+                </div>
               )}
               {thought.processedContent.suggestedAction && (
-                <div className="text-yellow-400">Action Mentioned: {thought.processedContent.suggestedAction}</div>
+                <div className="flex items-center gap-1 text-yellow-400 mt-1">
+                  <CheckSquare className="h-3.5 w-3.5" />
+                  <span>Action Mentioned: {thought.processedContent.suggestedAction}</span>
+                </div>
               )}
             </>
           )}
-        </div>
+          </CardContent>
 
-        {/* Actions */}
-        <div className="flex gap-2 mt-4">
+          {/* Actions */}
+          <CardFooter className={cn(
+            "flex gap-2",
+            thought.thoughtType === 'uncertain' && "flex-wrap"
+          )}>
           {/* Type Change Buttons */}
           {thought.thoughtType === 'uncertain' && onTypeChange && (
             <>
               {thought.possibleTypes?.includes('task') && (
-                <button
+                <Button
+                  variant="default"
+                  size="sm"
                   onClick={() => onTypeChange(thought.id, 'task')}
-                  className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-500 transition-colors"
+                  className="flex items-center gap-1"
                 >
-                  Make Task
-                </button>
+                  <CheckSquare className="h-3.5 w-3.5" />
+                  <span>Make Task</span>
+                </Button>
               )}
               {thought.possibleTypes?.includes('event') && (
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => onTypeChange(thought.id, 'event')}
-                  className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-500 transition-colors"
+                  className="flex items-center gap-1"
                 >
-                  Make Event
-                </button>
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>Make Event</span>
+                </Button>
               )}
               {thought.possibleTypes?.includes('note') && (
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => onTypeChange(thought.id, 'note')}
-                  className="px-3 py-1 bg-gray-600 text-white rounded-lg text-sm hover:bg-gray-500 transition-colors"
+                  className="flex items-center gap-1"
                 >
-                  Make Note
-                </button>
+                  <FileText className="h-3.5 w-3.5" />
+                  <span>Make Note</span>
+                </Button>
               )}
             </>
           )}
@@ -237,29 +284,32 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
           {thought.status === 'pending' && (
             <div className="flex gap-2 ml-auto">
               {onApprove && (
-                <button
+                <Button
+                  variant="success"
+                  size="sm"
                   onClick={() => onApprove(thought.id)}
-                  className="px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-500 transition-colors"
                 >
                   Approve
-                </button>
+                </Button>
               )}
               {onReject && (
-                <button
+                <Button
+                  variant="destructive"
+                  size="sm"
                   onClick={() => onReject(thought.id)}
-                  className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-500 transition-colors"
                 >
                   Reject
-                </button>
+                </Button>
               )}
               {onFix && (
                 <div className="relative inline-block">
-                  <button
+                  <Button
+                    variant="default"
+                    size="sm"
                     onClick={() => onFix(thought.id, 'text')}
-                    className="px-3 py-1 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-500 transition-colors"
                   >
                     Fix
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -269,37 +319,41 @@ export default function ContentCard({ thought, onTypeChange, onApprove, onReject
           {showDelete && thought.status === 'approved' && (
             <div className="flex gap-2 ml-auto">
               {!isConfirmingDelete && !isDeleting && (
-                <button
+                <Button
+                  variant="destructive"
+                  size="sm"
                   onClick={handleDeleteClick}
-                  className="px-3 py-1 bg-red-600 text-white rounded-lg text-sm hover:bg-red-500 transition-colors"
                 >
                   Delete
-                </button>
+                </Button>
               )}
               {isDeleting && (
-                <span className="px-3 py-1 text-red-500 text-sm animate-spin">
-                  <ArrowPathIcon className="h-5 w-5" />
+                <span className="px-3 py-1 text-destructive text-sm">
+                  <RotateCw className="h-4 w-4 animate-spin" />
                 </span>
               )}
               {isConfirmingDelete && !isDeleting && (
                 <>
-                  <button
+                  <Button
                     onClick={handleConfirmDelete}
-                    className="px-3 py-1 bg-red-700 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
+                    variant="destructive"
+                    size="sm"
                   >
                     Confirm
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleCancelDelete}
-                    className="px-3 py-1 bg-gray-600 text-white rounded-lg text-sm hover:bg-gray-500 transition-colors"
+                    variant="outline"
+                    size="sm"
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
           )}
-        </div>
+          </CardFooter>
+        </Card>
       </motion.div>
     </AnimatePresence>
   );

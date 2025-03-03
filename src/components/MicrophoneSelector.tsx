@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { IoMdSettings, IoMdMic, IoMdCheckmark } from 'react-icons/io';
+import { Mic, Settings, Check, Volume2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 interface MicrophoneSelectorProps {
   onDeviceSelected: (deviceId: string) => void;
@@ -149,87 +152,88 @@ export default function MicrophoneSelector({ onDeviceSelected, selectedDeviceId 
   return (
     <div className="relative">
       {/* Settings button */}
-      <button
+      <Button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors"
-        title="Microphone settings"
+        variant="outline"
+        size="sm"
+        className="flex items-center gap-2"
       >
-        <IoMdMic className="text-blue-400" />
+        <Mic className="h-4 w-4 text-primary" />
         <span className="max-w-[150px] truncate">{getSelectedDeviceName()}</span>
-        <IoMdSettings className="text-gray-400" />
-      </button>
+        <Settings className="h-4 w-4 text-muted-foreground" />
+      </Button>
       
       {/* Dropdown menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-72 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50">
-          <div className="p-3 border-b border-slate-700">
-            <h3 className="font-medium text-white">Select Microphone</h3>
-            <p className="text-xs text-gray-400 mt-1">
+        <Card className="absolute top-full left-0 mt-2 w-80 z-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Select Microphone</CardTitle>
+            <CardDescription>
               Choose which microphone to use for voice input
-            </p>
-          </div>
+            </CardDescription>
+          </CardHeader>
           
-          <div className="max-h-60 overflow-y-auto">
+          <CardContent className="max-h-60 overflow-y-auto p-0">
             {devices.length === 0 ? (
-              <div className="p-3 text-sm text-gray-400">
+              <div className="p-3 text-sm text-muted-foreground">
                 No microphones detected
               </div>
             ) : (
-              <ul>
+              <ul className="divide-y divide-border">
                 {devices.map(device => (
                   <li key={device.deviceId}>
-                    <button
+                    <Button
                       onClick={() => selectDevice(device.deviceId)}
-                      className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-slate-700 transition-colors ${
-                        device.deviceId === selectedDeviceId ? 'bg-slate-700' : ''
-                      }`}
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-between text-left px-4 py-2 rounded-none h-auto",
+                        device.deviceId === selectedDeviceId ? "bg-secondary" : ""
+                      )}
                     >
                       <span className="truncate">{device.label || 'Unnamed Microphone'}</span>
                       {device.deviceId === selectedDeviceId && (
-                        <IoMdCheckmark className="text-blue-400 flex-shrink-0" />
+                        <Check className="h-4 w-4 text-primary ml-2" />
                       )}
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
             )}
-          </div>
+          </CardContent>
           
           {/* Microphone test section */}
-          <div className="p-3 border-t border-slate-700">
+          <CardFooter className="flex-col items-stretch border-t pt-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-300">Test Microphone</span>
-              <button
+              <span className="text-sm">Test Microphone</span>
+              <Button
                 onClick={isTestingMic ? stopMicTest : startMicTest}
-                className={`px-2 py-1 text-xs rounded ${
-                  isTestingMic 
-                    ? 'bg-red-600 hover:bg-red-500' 
-                    : 'bg-blue-600 hover:bg-blue-500'
-                } transition-colors`}
+                variant={isTestingMic ? "destructive" : "secondary"}
+                size="sm"
               >
                 {isTestingMic ? 'Stop' : 'Test'}
-              </button>
+              </Button>
             </div>
             
             {/* Volume meter */}
-            <div className="h-6 bg-slate-900 rounded overflow-hidden">
+            <div className="h-5 bg-secondary rounded-full overflow-hidden mt-2">
               <div 
-                className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-100"
+                className="h-full bg-gradient-to-r from-primary/80 to-primary transition-all duration-100"
                 style={{ width: `${Math.min(volume * 100, 100)}%` }}
               />
             </div>
             
             {isTestingMic && (
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-2 flex items-center">
+                <Volume2 className="h-3 w-3 mr-1" />
                 {volume < 0.1 
-                  ? 'No sound detected. Try speaking louder or check if the correct microphone is selected.' 
+                  ? 'No sound detected. Try speaking louder.' 
                   : volume < 0.3 
                     ? 'Low volume detected. Try speaking louder.' 
                     : 'Microphone is working!'}
               </p>
             )}
-          </div>
-        </div>
+          </CardFooter>
+        </Card>
       )}
     </div>
   );
